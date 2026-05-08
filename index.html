@@ -231,6 +231,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
         <option value="">Todos los estados</option>
         <option value="Comprado">Comprado</option><option value="En tránsito a Madrid">En tránsito a Madrid</option>
         <option value="En Madrid">En Madrid</option><option value="Enviado al destino">Enviado al destino</option>
+        <option value="Aduana">Aduana</option>
         <option value="Entregado">Entregado</option>
       </select>
     </div>
@@ -478,7 +479,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <div class="form-row">
       <div class="form-group"><label>Estado</label>
-        <select id="i-estado"><option>Comprado</option><option>En tránsito a Madrid</option><option>En Madrid</option><option>Enviado al destino</option><option>Entregado</option></select>
+        <select id="i-estado"><option>Comprado</option><option>En tránsito a Madrid</option><option>En Madrid</option><option>Enviado al destino</option><option>Aduana</option><option>Entregado</option></select>
       </div>
       <div class="form-group"><label>Empresa de transporte</label>
         <select id="i-carrier" onchange="actualizarCarrierURL()">
@@ -587,8 +588,8 @@ input:focus,select:focus{border-color:var(--c-orange)}
 
 <script>
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycbxkAJ8nR3DnVyOWDXgOv3pUN9c3famW37cz-FpCVv3iIw9jNQpc0gSCjKI8QOWnP4f4/exec';
-const ESTADOS=['Comprado','En tránsito a Madrid','En Madrid','Enviado al destino','Entregado'];
-const ESTADO_COLORS=['#888','#6fb3f5','#f09040','#5dca8a','#2ecc71'];
+const ESTADOS=['Comprado','En tránsito a Madrid','En Madrid','Enviado al destino','Aduana','Entregado'];
+const ESTADO_COLORS=['#888','#6fb3f5','#f09040','#5dca8a','#e67e22','#2ecc71'];
 const ESTADO_EP=['ep-0','ep-1','ep-2','ep-3','ep-4'];
 
 let ordenes=[],nid=1,detalleId=null,editId=null,delId=null;
@@ -1069,12 +1070,34 @@ function verDetalle(id){
       </div>
       <div>
         <p style="font-size:11px;color:var(--c-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Progreso</p>
-        <div style="display:flex;align-items:center">
-          ${ESTADOS.map((e,i)=>{const act=i<=ei,c=act?'var(--c-orange)':'var(--c-border)';return`<div style="display:flex;align-items:center;flex:1"><div style="flex:1;height:3px;background:${c}"></div><div class="prog-dot" style="background:${c};${i===ei?'box-shadow:0 0 0 3px rgba(232,119,34,0.25)':''}"></div></div>`;}).join('')}
+        <div style="position:relative;padding:8px 0">
+          <div style="position:absolute;top:50%;left:0;right:0;height:6px;background:var(--c-border);border-radius:3px;transform:translateY(-50%)"></div>
+          <div style="position:absolute;top:50%;left:0;height:6px;background:var(--c-orange);border-radius:3px;transform:translateY(-50%);transition:width .6s ease" style="width:${Math.round((ei/(ESTADOS.length-1))*100)}%"></div>
+          <div style="display:flex;justify-content:space-between;position:relative">
+            ${ESTADOS.map((e,i)=>{
+              const act=i<=ei;
+              const esCurrent=i===ei;
+              return`<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+                <div style="width:${esCurrent?'16px':'12px'};height:${esCurrent?'16px':'12px'};border-radius:50%;background:${act?'var(--c-orange)':'var(--c-border)'};border:${esCurrent?'3px solid rgba(245,200,0,0.35)':'2px solid '+(act?'var(--c-orange)':'var(--c-border)')};box-sizing:border-box;transition:all .3s"></div>
+              </div>`;
+            }).join('')}
+          </div>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-top:6px">
-          ${ESTADOS.map((e,i)=>`<span style="font-size:9px;color:${i<=ei?'var(--c-orange)':'var(--c-sub)'};flex:1;text-align:center;overflow:hidden">${e.split(' ')[0]}</span>`).join('')}
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          ${ESTADOS.map((e,i)=>`<span style="font-size:9px;color:${i<=ei?'var(--c-orange)':'var(--c-sub)'};flex:1;text-align:center;font-weight:${i===ei?'600':'400'}">${e}</span>`).join('')}
         </div>
+        ${(()=>{
+          if(!o.eta) return '';
+          const hoy=new Date();hoy.setHours(0,0,0,0);
+          const eta=new Date(o.eta);eta.setHours(0,0,0,0);
+          const dias=Math.round((eta-hoy)/(1000*60*60*24));
+          if(o.estado==='Entregado') return '';
+          const color=dias<0?'#e74c3c':dias<=3?'#f09040':'#5dca8a';
+          const texto=dias<0?`Llegada hace ${Math.abs(dias)} día(s)`:dias===0?'Llega hoy':`Faltan ${dias} día(s) para la llegada`;
+          return`<div style="margin-top:10px;text-align:center;padding:8px 14px;background:${color}18;border-radius:var(--rad);border:0.5px solid ${color}44">
+            <span style="font-size:12px;font-weight:600;color:${color}">${texto}</span>
+          </div>`;
+        })()}
       </div>
     </div>
   `;
