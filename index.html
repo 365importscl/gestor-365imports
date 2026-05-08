@@ -1094,7 +1094,10 @@ async function cambiarEstado(id,nuevoEstado){
     ref:o.ref,prov:o.prov,dest:o.dest,doc:o.doc,tipo:o.tipo,merc:o.merc,eta:o.eta,etd:o.etd,
     factura:o.factura,facturaMan:o.facturaMan||'EUR',flete:o.flete,fleteMan:o.fleteMan||'EUR',
     aduana:o.aduana,aduanaMan:o.aduanaMan||'EUR',otros:o.otros,otrosMan:o.otrosMan||'EUR',
-    estadoAnterior,estadoNuevo:nuevoEstado
+    estadoAnterior,estadoNuevo:nuevoEstado,
+    recibidoPor:usuarioActual||'',
+    linksFactura:o.linksFactura||[],
+    linksComprobante:o.linksComprobante||[]
   }]:[];
   await guardarEnSheets(cambios,todosCorreos);
 }
