@@ -385,38 +385,52 @@ input:focus,select:focus{border-color:var(--c-orange)}
 
 <!-- MODAL PIPELINE -->
 <div id="pipeline-modal" class="modal-back">
-  <div class="modal-box" style="max-width:520px">
+  <div class="modal-box" style="max-width:600px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
       <p id="pipeline-titulo" style="font-size:16px;font-weight:500;color:var(--c-white)">Nueva solicitud</p>
       <button class="btn-ghost" onclick="cerrarFormPipeline()">Cerrar</button>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Proveedor</label><select id="p-prov"></select></div>
-      <div class="form-group"><label>Estado</label>
-        <select id="p-estado">
-          <option>En evaluación</option><option>Cotizado</option><option>Aprobado</option><option>Convertido</option>
-        </select>
+    <div id="pipeline-form-contenido">
+      <div class="form-row">
+        <div class="form-group"><label>Proveedor</label><select id="p-prov"></select></div>
+        <div class="form-group"><label>Destino</label>
+          <select id="p-dest"><option>Venezuela</option><option>Chile</option></select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px"><label>Producto / Descripción detallada</label><textarea id="p-producto" rows="3" placeholder="Ej: 10 cascos ABUS modelo Gamechanger, talla M, color negro" style="resize:vertical"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Cantidad</label><input type="number" id="p-cantidad" value="1" min="1" step="1"></div>
+        <div class="form-group"><label>Precio unitario estimado</label><div class="cost-input-wrap"><input type="number" id="p-precio-unit" value="0" min="0" step="0.01"><select id="p-precio-mon"><option value="EUR">€ EUR</option><option value="USD">$ USD</option></select></div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Presupuesto total</label><div class="cost-input-wrap"><input type="number" id="p-presupuesto" value="0" min="0" step="0.01"><select id="p-presupuesto-mon"><option value="EUR">€ EUR</option><option value="USD">$ USD</option></select></div></div>
+        <div class="form-group"><label>Tipo de carga</label>
+          <select id="p-tipo"><option>Aérea</option><option>Marítima</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Fecha estimada de compra</label><input type="date" id="p-fecha"></div>
+        <div class="form-group"><label>Link orden de compra / proforma <span style="color:var(--c-sub);font-size:10px;text-transform:none">Google Drive</span></label><input type="url" id="p-link-doc" placeholder="https://drive.google.com/..."></div>
+      </div>
+      <div class="form-group" style="margin-bottom:1.5rem"><label>Justificación / Notas</label><textarea id="p-notas" rows="2" placeholder="¿Por qué se necesita? Prioridad, contexto, etc." style="resize:vertical"></textarea></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn-ghost" onclick="cerrarFormPipeline()">Cancelar</button>
+        <button id="p-convertir-btn" class="btn-ghost" style="color:#5dca8a;border-color:rgba(46,204,113,0.3);display:none" onclick="convertirEnOrden()">→ Convertir en orden</button>
+        <button class="btn-primary" onclick="guardarPipeline()">Guardar</button>
       </div>
     </div>
-    <div class="form-group" style="margin-bottom:10px"><label>Producto / Descripción</label><input type="text" id="p-producto" placeholder="Ej: 10 cascos ABUS modelo X"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Destino</label>
-        <select id="p-dest"><option>Venezuela</option><option>Chile</option></select>
-      </div>
-      <div class="form-group"><label>Tipo de carga</label>
-        <select id="p-tipo"><option>Aérea</option><option>Marítima</option></select>
-      </div>
+  </div>
+</div>
+
+<!-- MODAL VER SOLICITUD (solo lectura) -->
+<div id="pipeline-ver-modal" class="modal-back">
+  <div class="modal-box" style="max-width:580px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <p style="font-size:16px;font-weight:500;color:var(--c-white)">Detalle de solicitud</p>
+      <button class="btn-ghost" onclick="cerrarVerPipeline()">Cerrar</button>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Presupuesto estimado</label><div class="cost-input-wrap"><input type="number" id="p-presupuesto" value="0" min="0" step="0.01"><select id="p-presupuesto-mon"><option value="EUR">€ EUR</option><option value="USD">$ USD</option></select></div></div>
-      <div class="form-group"><label>Fecha estimada</label><input type="date" id="p-fecha"></div>
-    </div>
-    <div class="form-group" style="margin-bottom:1.5rem"><label>Notas</label><input type="text" id="p-notas" placeholder="Observaciones, prioridad, etc."></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn-ghost" onclick="cerrarFormPipeline()">Cancelar</button>
-      <button id="p-convertir-btn" class="btn-ghost" style="color:#5dca8a;border-color:rgba(46,204,113,0.3);display:none" onclick="convertirEnOrden()">→ Convertir en orden</button>
-      <button class="btn-primary" onclick="guardarPipeline()">Guardar</button>
-    </div>
+    <div id="pipeline-ver-contenido"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:1.5rem" id="pipeline-ver-acciones"></div>
   </div>
 </div>
 </div><!-- /app-content -->
@@ -1345,7 +1359,213 @@ async function guardarConfig(){
 let pipeline=[];
 let editPipelineId=null;
 const PIPELINE_ESTADOS=['En evaluación','Cotizado','Aprobado','Convertido'];
-const PIPELINE_COLORES=['#888','#6fb3f5','#f09040','#5dca8a'];
+const PIPELINE_COLORES=['#888','#6fb3f5','#F5C800','#5dca8a'];
+
+function renderPipeline(){
+  PIPELINE_ESTADOS.forEach((estado,i)=>{
+    const lista=pipeline.filter(s=>s.estado===estado);
+    document.getElementById(`pipeline-count-${i}`).textContent=`(${lista.length})`;
+    document.getElementById(`pipeline-col-${i}`).innerHTML=lista.length?lista.map(s=>`
+      <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:10px;margin-bottom:8px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='var(--c-orange)'" onmouseout="this.style.borderColor='var(--c-border)'" onclick="verSolicitud('${s.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <p style="font-size:12px;font-weight:500;color:var(--c-text);flex:1;line-height:1.4">${(s.producto||'Sin descripción').substring(0,60)}${(s.producto||'').length>60?'...':''}</p>
+          ${s.estado!=='Aprobado'&&s.estado!=='Convertido'?`<button onclick="event.stopPropagation();eliminarPipeline('${s.id}')" style="background:none;border:none;color:var(--c-sub);cursor:pointer;font-size:14px;padding:0;margin-left:6px">×</button>`:''}
+        </div>
+        <p style="font-size:11px;color:var(--c-orange);margin-bottom:4px">${s.prov||'—'}</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
+          <span class="badge ${s.dest==='Venezuela'?'b-venezuela':'b-chile'}" style="font-size:9px">${s.dest||'—'}</span>
+          ${s.presupuesto>0?`<span style="font-size:11px;color:var(--c-muted)">${fmtMon(s.presupuesto,s.presupuestoMon||'EUR')}</span>`:''}
+        </div>
+        ${s.aprobadoPor?`<p style="font-size:10px;color:#5dca8a;margin-top:4px">✓ Aprobado por ${s.aprobadoPor}</p>`:''}
+        ${s.fecha?`<p style="font-size:10px;color:var(--c-sub);margin-top:2px">📅 ${s.fecha}</p>`:''}
+      </div>`).join(''):`<p style="font-size:12px;color:var(--c-sub);text-align:center;padding:1rem 0">Sin solicitudes</p>`;
+  });
+}
+
+function verSolicitud(id){
+  const s=pipeline.find(x=>x.id===id);
+  if(!s)return;
+  const aprobada=s.estado==='Aprobado'||s.estado==='Convertido';
+  const puedeAprobar=usuarioActual==='Ronney'&&s.estado==='En evaluación'||usuarioActual==='Ronney'&&s.estado==='Cotizado';
+  document.getElementById('pipeline-ver-contenido').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Proveedor</p><p style="font-size:14px;font-weight:500;color:var(--c-orange)">${s.prov||'—'}</p></div>
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Estado</p>
+        <span style="display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500;background:${aprobada?'rgba(93,202,138,0.15)':'rgba(245,200,0,0.12)'};color:${aprobada?'#5dca8a':'var(--c-orange)'}">${s.estado}</span>
+      </div>
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Destino</p><p style="font-size:13px">${s.dest||'—'}</p></div>
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Tipo</p><p style="font-size:13px">${s.tipo||'—'}</p></div>
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Cantidad</p><p style="font-size:13px">${s.cantidad||'—'}</p></div>
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Precio unitario</p><p style="font-size:13px">${s.precioUnit>0?fmtMon(s.precioUnit,s.precioMon||'EUR'):'—'}</p></div>
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Presupuesto total</p><p style="font-size:14px;font-weight:500;color:var(--c-orange)">${s.presupuesto>0?fmtMon(s.presupuesto,s.presupuestoMon||'EUR'):'—'}</p></div>
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Fecha estimada</p><p style="font-size:13px">${s.fecha||'—'}</p></div>
+    </div>
+    <div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Producto / Descripción</p><p style="font-size:13px;line-height:1.6;background:var(--c-card);padding:10px;border-radius:var(--rad)">${s.producto||'—'}</p></div>
+    ${s.notas?`<div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Justificación / Notas</p><p style="font-size:13px;line-height:1.6;background:var(--c-card);padding:10px;border-radius:var(--rad)">${s.notas}</p></div>`:''}
+    ${s.linkDoc?`<div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:6px">Orden de compra / Proforma</p><a href="${s.linkDoc}" target="_blank" style="font-size:12px;color:var(--c-orange);text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:rgba(245,200,0,0.1);border-radius:var(--rad);border:0.5px solid rgba(245,200,0,0.3)">📄 Ver documento ↗</a></div>`:''}
+    ${s.aprobadoPor?`<div style="padding:10px 14px;background:rgba(93,202,138,0.1);border-left:3px solid #5dca8a;border-radius:0 var(--rad) var(--rad) 0;margin-bottom:12px"><p style="font-size:13px;color:#5dca8a">✓ <strong>Aprobado por ${s.aprobadoPor}</strong> el ${s.fechaAprobacion||''}</p></div>`:''}
+    ${s.creadoPor?`<p style="font-size:11px;color:var(--c-sub)">Creado por ${s.creadoPor}</p>`:''}
+  `;
+  const acciones=document.getElementById('pipeline-ver-acciones');
+  acciones.innerHTML='';
+  const btnCerrar=document.createElement('button');
+  btnCerrar.className='btn-ghost';btnCerrar.textContent='Cerrar';
+  btnCerrar.onclick=cerrarVerPipeline;
+  acciones.appendChild(btnCerrar);
+  if(!aprobada&&s.estado!=='Convertido'){
+    const btnEditar=document.createElement('button');
+    btnEditar.className='btn-ghost';btnEditar.textContent='✏️ Editar';
+    btnEditar.onclick=()=>{cerrarVerPipeline();abrirFormPipeline(id);};
+    acciones.appendChild(btnEditar);
+  }
+  if(puedeAprobar){
+    const btnAprobar=document.createElement('button');
+    btnAprobar.className='btn-primary';btnAprobar.textContent='✓ Aprobar solicitud';
+    btnAprobar.onclick=()=>aprobarSolicitud(id);
+    acciones.appendChild(btnAprobar);
+  }
+  if(s.estado==='Aprobado'){
+    const btnConvertir=document.createElement('button');
+    btnConvertir.className='btn-primary';btnConvertir.textContent='→ Convertir en orden';
+    btnConvertir.onclick=()=>{cerrarVerPipeline();convertirEnOrden(id);};
+    acciones.appendChild(btnConvertir);
+  }
+  document.getElementById('pipeline-ver-modal').style.display='flex';
+}
+
+function cerrarVerPipeline(){document.getElementById('pipeline-ver-modal').style.display='none';}
+
+function aprobarSolicitud(id){
+  if(!confirm('¿Aprobar esta solicitud de compra?'))return;
+  const s=pipeline.find(x=>x.id===id);
+  if(!s)return;
+  s.estado='Aprobado';
+  s.aprobadoPor=usuarioActual;
+  s.fechaAprobacion=new Date().toLocaleDateString('es-ES');
+  cerrarVerPipeline();
+  renderPipeline();
+  guardarPipelineEnSheets();
+  // Mostrar confirmación
+  setStatus('ok','Solicitud aprobada por '+usuarioActual+' · '+hora());
+}
+
+function abrirFormPipeline(id){
+  editPipelineId=id;
+  document.getElementById('pipeline-titulo').textContent=id?'Editar solicitud':'Nueva solicitud';
+  const sel=document.getElementById('p-prov');
+  sel.innerHTML=config.proveedores.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if(id){
+    const s=pipeline.find(x=>x.id===id);
+    if(s){
+      sel.value=s.prov||'';
+      document.getElementById('p-producto').value=s.producto||'';
+      document.getElementById('p-dest').value=s.dest||'Venezuela';
+      document.getElementById('p-tipo').value=s.tipo||'Aérea';
+      document.getElementById('p-cantidad').value=s.cantidad||1;
+      document.getElementById('p-precio-unit').value=s.precioUnit||0;
+      document.getElementById('p-precio-mon').value=s.precioMon||'EUR';
+      document.getElementById('p-presupuesto').value=s.presupuesto||0;
+      document.getElementById('p-presupuesto-mon').value=s.presupuestoMon||'EUR';
+      document.getElementById('p-fecha').value=s.fecha||'';
+      document.getElementById('p-link-doc').value=s.linkDoc||'';
+      document.getElementById('p-notas').value=s.notas||'';
+    }
+  } else {
+    sel.selectedIndex=0;
+    ['p-producto','p-notas','p-link-doc'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('p-cantidad').value='1';
+    document.getElementById('p-precio-unit').value='0';
+    document.getElementById('p-precio-mon').value='EUR';
+    document.getElementById('p-presupuesto').value='0';
+    document.getElementById('p-presupuesto-mon').value='EUR';
+    document.getElementById('p-dest').value='Venezuela';
+    document.getElementById('p-tipo').value='Aérea';
+    document.getElementById('p-fecha').value='';
+  }
+  // Auto-calcular presupuesto cuando cambian cantidad o precio
+  document.getElementById('p-cantidad').oninput=calcularPresupuesto;
+  document.getElementById('p-precio-unit').oninput=calcularPresupuesto;
+  document.getElementById('pipeline-modal').style.display='flex';
+}
+
+function calcularPresupuesto(){
+  const qty=parseFloat(document.getElementById('p-cantidad').value)||0;
+  const unit=parseFloat(document.getElementById('p-precio-unit').value)||0;
+  if(qty>0&&unit>0) document.getElementById('p-presupuesto').value=(qty*unit).toFixed(2);
+}
+
+function cerrarFormPipeline(){document.getElementById('pipeline-modal').style.display='none';editPipelineId=null;}
+
+function guardarPipeline(){
+  const producto=document.getElementById('p-producto').value.trim();
+  if(!producto){alert('Ingresa la descripción del producto');return;}
+  const existing=editPipelineId?pipeline.find(x=>x.id===editPipelineId):null;
+  const d={
+    id:editPipelineId||('pip-'+Date.now()),
+    prov:document.getElementById('p-prov').value,
+    estado:existing?existing.estado:'En evaluación',
+    producto,
+    dest:document.getElementById('p-dest').value,
+    tipo:document.getElementById('p-tipo').value,
+    cantidad:parseFloat(document.getElementById('p-cantidad').value)||1,
+    precioUnit:parseFloat(document.getElementById('p-precio-unit').value)||0,
+    precioMon:document.getElementById('p-precio-mon').value,
+    presupuesto:parseFloat(document.getElementById('p-presupuesto').value)||0,
+    presupuestoMon:document.getElementById('p-presupuesto-mon').value,
+    fecha:document.getElementById('p-fecha').value,
+    linkDoc:document.getElementById('p-link-doc').value.trim(),
+    notas:document.getElementById('p-notas').value.trim(),
+    creadoPor:existing?existing.creadoPor:usuarioActual,
+    aprobadoPor:existing?existing.aprobadoPor:'',
+    fechaAprobacion:existing?existing.fechaAprobacion:''
+  };
+  if(editPipelineId){const i=pipeline.findIndex(x=>x.id===editPipelineId);if(i>=0)pipeline[i]=d;}
+  else pipeline.unshift(d);
+  cerrarFormPipeline();renderPipeline();
+  guardarPipelineEnSheets();
+}
+
+function eliminarPipeline(id){
+  if(!confirm('¿Eliminar esta solicitud?'))return;
+  pipeline=pipeline.filter(x=>x.id!==id);
+  renderPipeline();guardarPipelineEnSheets();
+}
+
+function convertirEnOrden(id){
+  const sid=id||editPipelineId;
+  const s=pipeline.find(x=>x.id===sid);
+  if(!s)return;
+  cerrarVerPipeline();
+  s.estado='Convertido';renderPipeline();guardarPipelineEnSheets();
+  abrirForm(null);
+  setTimeout(()=>{
+    document.getElementById('i-prov').value=s.prov||'';
+    document.getElementById('i-tipo').value=s.tipo||'Aérea';
+    document.getElementById('i-dest').value=s.dest||'Venezuela';
+    document.getElementById('i-factura').value=s.presupuesto||0;
+    document.getElementById('i-factura-mon').value=s.presupuestoMon||'EUR';
+    document.getElementById('i-merc').value=s.producto||'';
+  },100);
+}
+
+async function guardarPipelineEnSheets(){
+  try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'save_pipeline',pipeline})});}catch(e){}
+}
+
+async function cargarPipeline(){
+  try{
+    const res=await fetch(SCRIPT_URL+'?action=pipeline&t='+Date.now());
+    const data=await res.json();
+    if(data.pipeline) pipeline=data.pipeline.map(s=>({
+      ...s,
+      presupuesto:parseFloat(s.presupuesto)||0,
+      precioUnit:parseFloat(s.precioUnit)||0,
+      cantidad:parseFloat(s.cantidad)||1
+    }));
+    renderPipeline();
+  }catch(e){renderPipeline();}
+}
 
 function renderPipeline(){
   PIPELINE_ESTADOS.forEach((estado,i)=>{
