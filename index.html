@@ -1592,92 +1592,11 @@ function abrirFormPipeline(id){
   document.getElementById('pipeline-titulo').textContent=id?'Editar solicitud':'Nueva solicitud';
   document.getElementById('p-convertir-btn').style.display=id?'block':'none';
   poblarSelectProv('');
-  const sel=document.getElementById('p-prov');
-  sel.innerHTML=config.proveedores.map(p=>`<option value="${p}">${p}</option>`).join('');
-  if(id){
-    const s=pipeline.find(x=>x.id===id);
-    if(s){
-      sel.value=s.prov||'';
-      document.getElementById('p-estado').value=s.estado||'En evaluación';
-      document.getElementById('p-producto').value=s.producto||'';
-      document.getElementById('p-dest').value=s.dest||'Venezuela';
-      document.getElementById('p-tipo').value=s.tipo||'Aérea';
-      document.getElementById('p-presupuesto').value=s.presupuesto||0;
-      document.getElementById('p-presupuesto-mon').value=s.presupuestoMon||'EUR';
-      document.getElementById('p-fecha').value=s.fecha||'';
-      document.getElementById('p-notas').value=s.notas||'';
-    }
-  } else {
-    sel.selectedIndex=0;
-    document.getElementById('p-estado').value='En evaluación';
-    ['p-producto','p-notas'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('p-presupuesto').value='0';
-    document.getElementById('p-presupuesto-mon').value='EUR';
-    document.getElementById('p-dest').value='Venezuela';
-    document.getElementById('p-tipo').value='Aérea';
-    document.getElementById('p-fecha').value='';
-  }
   document.getElementById('pipeline-modal').style.display='flex';
 }
 
 function cerrarFormPipeline(){document.getElementById('pipeline-modal').style.display='none';editPipelineId=null;}
 
-function guardarPipeline(){
-  const d={
-    id:editPipelineId||('pip-'+Date.now()),
-    prov:document.getElementById('p-prov').value,
-    estado:document.getElementById('p-estado').value,
-    producto:document.getElementById('p-producto').value.trim(),
-    dest:document.getElementById('p-dest').value,
-    tipo:document.getElementById('p-tipo').value,
-    presupuesto:parseFloat(document.getElementById('p-presupuesto').value)||0,
-    presupuestoMon:document.getElementById('p-presupuesto-mon').value,
-    fecha:document.getElementById('p-fecha').value,
-    notas:document.getElementById('p-notas').value.trim()
-  };
-  if(editPipelineId){const i=pipeline.findIndex(x=>x.id===editPipelineId);if(i>=0)pipeline[i]=d;}
-  else pipeline.unshift(d);
-  cerrarFormPipeline();renderPipeline();
-  guardarPipelineEnSheets();
-}
-
-function eliminarPipeline(id){
-  if(!confirm('¿Eliminar esta solicitud?'))return;
-  pipeline=pipeline.filter(x=>x.id!==id);
-  renderPipeline();guardarPipelineEnSheets();
-}
-
-function convertirEnOrden(){
-  const s=pipeline.find(x=>x.id===editPipelineId);
-  if(!s)return;
-  cerrarFormPipeline();
-  // Marcar como convertido
-  s.estado='Convertido';renderPipeline();guardarPipelineEnSheets();
-  // Abrir form de nueva orden con datos prellenados
-  abrirForm(null);
-  setTimeout(()=>{
-    document.getElementById('i-prov').value=s.prov||'';
-    document.getElementById('i-tipo').value=s.tipo||'Aérea';
-    document.getElementById('i-dest').value=s.dest||'Venezuela';
-    document.getElementById('i-factura').value=s.presupuesto||0;
-    document.getElementById('i-factura-mon').value=s.presupuestoMon||'EUR';
-    document.getElementById('i-notas').value=s.producto||'';
-  },100);
-}
-
-async function guardarPipelineEnSheets(){
-  try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'save_pipeline',pipeline})});}catch(e){}
-}
-
-async function cargarPipeline(){
-  try{
-    const res=await fetch(SCRIPT_URL+'?action=pipeline&t='+Date.now());
-    const data=await res.json();
-    if(data.pipeline) pipeline=data.pipeline;
-    renderPipeline();
-  }catch(e){renderPipeline();}
-}
 
 function cambiarTab(t,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
