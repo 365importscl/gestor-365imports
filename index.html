@@ -346,39 +346,47 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <button class="btn-primary" onclick="abrirFormPipeline(null)">+ Nueva solicitud</button>
   </div>
-  <div id="pipeline-kanban" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem">
-    <div class="panel">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <div style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0"></div>
-        <p style="font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.06em;margin:0">En evaluación</p>
-        <span id="pipeline-count-0" style="font-size:10px;color:var(--c-sub)"></span>
-      </div>
-      <div id="pipeline-col-0" style="min-height:80px"></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem">
+    <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #888">
+      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">En evaluación</p>
+      <p id="pip-cnt-0" style="font-size:26px;font-weight:500;color:var(--c-text)">0</p>
     </div>
-    <div class="panel">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <div style="width:8px;height:8px;border-radius:50%;background:#6fb3f5;flex-shrink:0"></div>
-        <p style="font-size:11px;font-weight:500;color:#6fb3f5;text-transform:uppercase;letter-spacing:.06em;margin:0">Cotizado</p>
-        <span id="pipeline-count-1" style="font-size:10px;color:var(--c-sub)"></span>
-      </div>
-      <div id="pipeline-col-1" style="min-height:80px"></div>
+    <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #6fb3f5">
+      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Cotizadas</p>
+      <p id="pip-cnt-1" style="font-size:26px;font-weight:500;color:#6fb3f5">0</p>
     </div>
-    <div class="panel">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <div style="width:8px;height:8px;border-radius:50%;background:#f09040;flex-shrink:0"></div>
-        <p style="font-size:11px;font-weight:500;color:#f09040;text-transform:uppercase;letter-spacing:.06em;margin:0">Aprobado</p>
-        <span id="pipeline-count-2" style="font-size:10px;color:var(--c-sub)"></span>
-      </div>
-      <div id="pipeline-col-2" style="min-height:80px"></div>
+    <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #F5C800">
+      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Aprobadas</p>
+      <p id="pip-cnt-2" style="font-size:26px;font-weight:500;color:#F5C800">0</p>
     </div>
-    <div class="panel">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <div style="width:8px;height:8px;border-radius:50%;background:#5dca8a;flex-shrink:0"></div>
-        <p style="font-size:11px;font-weight:500;color:#5dca8a;text-transform:uppercase;letter-spacing:.06em;margin:0">Convertido</p>
-        <span id="pipeline-count-3" style="font-size:10px;color:var(--c-sub)"></span>
-      </div>
-      <div id="pipeline-col-3" style="min-height:80px"></div>
+    <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #5dca8a">
+      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Convertidas</p>
+      <p id="pip-cnt-3" style="font-size:26px;font-weight:500;color:#5dca8a">0</p>
     </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+    <button onclick="filtrarPipeline('')" id="pip-fil-all" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px;background:var(--c-orange);color:#000;border-color:var(--c-orange)">Todos</button>
+    <button onclick="filtrarPipeline('En evaluación')" id="pip-fil-0" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">En evaluación</button>
+    <button onclick="filtrarPipeline('Cotizado')" id="pip-fil-1" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Cotizado</button>
+    <button onclick="filtrarPipeline('Aprobado')" id="pip-fil-2" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Aprobado</button>
+    <button onclick="filtrarPipeline('Convertido')" id="pip-fil-3" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Convertido</button>
+  </div>
+  <div class="panel" style="padding:0;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="border-bottom:0.5px solid var(--c-border)">
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em">Producto</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em">Proveedor</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em">Destino</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em">Presupuesto</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em">Estado</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em">Fecha</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="pipeline-tbody"></tbody>
+    </table>
+    <p id="pipeline-empty" style="display:none;text-align:center;padding:2rem;font-size:13px;color:var(--c-sub)">Sin solicitudes</p>
   </div>
 </div>
 
@@ -1367,14 +1375,60 @@ async function guardarConfig(){
 // ── PIPELINE ──────────────────────────────────────────────────
 let pipeline=[];
 let editPipelineId=null;
-const PIPELINE_ESTADOS=['En evaluación','Cotizado','Aprobado','Convertido'];
-const PIPELINE_COLORES=['#888','#6fb3f5','#F5C800','#5dca8a'];
+let pipFiltro='';
+
+function filtrarPipeline(estado){
+  pipFiltro=estado;
+  // Update filter buttons
+  ['pip-fil-all','pip-fil-0','pip-fil-1','pip-fil-2','pip-fil-3'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.style.background='';el.style.color='';el.style.borderColor='';}
+  });
+  const actBtn=estado===''?document.getElementById('pip-fil-all'):
+    document.getElementById(`pip-fil-${['En evaluación','Cotizado','Aprobado','Convertido'].indexOf(estado)}`);
+  if(actBtn){actBtn.style.background='var(--c-orange)';actBtn.style.color='#000';actBtn.style.borderColor='var(--c-orange)';}
+  renderPipeline();
+}
+
+const ESTADO_BADGE={
+  'En evaluación':'background:rgba(136,136,136,0.15);color:#aaa',
+  'Cotizado':'background:rgba(111,179,245,0.15);color:#6fb3f5',
+  'Aprobado':'background:rgba(245,200,0,0.15);color:#F5C800',
+  'Convertido':'background:rgba(93,202,138,0.15);color:#5dca8a'
+};
 
 function renderPipeline(){
-  PIPELINE_ESTADOS.forEach((estado,i)=>{
-    const lista=pipeline.filter(s=>s.estado===estado);
-    document.getElementById(`pipeline-count-${i}`).textContent=`(${lista.length})`;
-    document.getElementById(`pipeline-col-${i}`).innerHTML=lista.length?lista.map(s=>`
+  // Update counters
+  ['En evaluación','Cotizado','Aprobado','Convertido'].forEach((e,i)=>{
+    const el=document.getElementById(`pip-cnt-${i}`);
+    if(el)el.textContent=pipeline.filter(s=>s.estado===e).length;
+  });
+  // Filter
+  const lista=pipFiltro?pipeline.filter(s=>s.estado===pipFiltro):pipeline;
+  const tbody=document.getElementById('pipeline-tbody');
+  const empty=document.getElementById('pipeline-empty');
+  if(!tbody)return;
+  if(!lista.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const badgeStyle=s=>ESTADO_BADGE[s.estado]||'background:rgba(136,136,136,0.15);color:#aaa';
+  tbody.innerHTML=lista.map(s=>`
+    <tr style="border-bottom:0.5px solid var(--c-border);cursor:pointer" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background=''" onclick="verSolicitud('${s.id}')">
+      <td style="padding:12px 14px">
+        <p style="font-size:13px;font-weight:500;color:var(--c-text);margin-bottom:2px">${(s.producto||'Sin descripción').substring(0,45)}${(s.producto||'').length>45?'...':''}</p>
+        ${s.numDoc?`<p style="font-size:11px;color:var(--c-sub)">${s.numDoc}</p>`:''}
+      </td>
+      <td style="padding:12px 14px;font-size:13px;color:var(--c-orange)">${s.prov||'—'}</td>
+      <td style="padding:12px 14px"><span class="badge ${s.dest==='Venezuela'?'b-venezuela':'b-chile'}">${s.dest||'—'}</span></td>
+      <td style="padding:12px 14px;font-size:13px;font-weight:500;color:var(--c-text)">${s.presupuesto>0?fmtMon(s.presupuesto,s.presupuestoMon||'EUR'):'—'}</td>
+      <td style="padding:12px 14px"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;${badgeStyle(s)}">${s.estado}</span></td>
+      <td style="padding:12px 14px;font-size:12px;color:var(--c-sub)">${s.fecha||'—'}</td>
+      <td style="padding:12px 14px;white-space:nowrap" onclick="event.stopPropagation()">
+        <button onclick="verSolicitud('${s.id}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid var(--c-border);background:transparent;cursor:pointer;color:var(--c-sub);margin-right:4px">Ver</button>
+        ${s.estado!=='Aprobado'&&s.estado!=='Convertido'?`<button onclick="eliminarPipeline('${s.id}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid rgba(231,76,60,0.3);background:transparent;cursor:pointer;color:#e74c3c">×</button>`:''}
+        ${s.estado==='Aprobado'?`<button onclick="verSolicitud('${s.id}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:none;background:#F5C800;color:#000;cursor:pointer;font-weight:500">Convertir</button>`:''}
+      </td>
+    </tr>`).join('');
+}
       <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:12px;margin-bottom:8px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--c-orange)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='var(--c-border)';this.style.transform='none'" onclick="verSolicitud('${s.id}')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <p style="font-size:12px;font-weight:600;color:var(--c-text);flex:1;line-height:1.4;margin-right:6px">${(s.producto||'Sin descripción').substring(0,55)}${(s.producto||'').length>55?'...':''}</p>
