@@ -410,10 +410,6 @@ input:focus,select:focus{border-color:var(--c-orange)}
       </div>
       <div class="form-group" style="margin-bottom:10px"><label>Producto / Descripción detallada</label><textarea id="p-producto" rows="3" placeholder="Ej: 10 cascos ABUS modelo Gamechanger, talla M, color negro" style="resize:vertical"></textarea></div>
       <div class="form-row">
-        <div class="form-group"><label>Cantidad</label><input type="number" id="p-cantidad" value="1" min="1" step="1"></div>
-        <div class="form-group"><label>Precio unitario estimado</label><div class="cost-input-wrap"><input type="number" id="p-precio-unit" value="0" min="0" step="0.01"><select id="p-precio-mon"><option value="EUR">€ EUR</option><option value="USD">$ USD</option></select></div></div>
-      </div>
-      <div class="form-row">
         <div class="form-group"><label>Presupuesto total</label><div class="cost-input-wrap"><input type="number" id="p-presupuesto" value="0" min="0" step="0.01"><select id="p-presupuesto-mon"><option value="EUR">€ EUR</option><option value="USD">$ USD</option></select></div></div>
         <div class="form-group"><label>Tipo de carga</label>
           <select id="p-tipo"><option>Aérea</option><option>Marítima</option></select>
@@ -421,7 +417,10 @@ input:focus,select:focus{border-color:var(--c-orange)}
       </div>
       <div class="form-row">
         <div class="form-group"><label>Fecha estimada de compra</label><input type="date" id="p-fecha"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Número de documento <span style="color:var(--c-sub);font-size:10px;text-transform:none">Proforma / Orden</span></label><input type="text" id="p-num-doc" placeholder="Ej: PRF-2026-001"></div>
         <div class="form-group"><label>Link orden de compra / proforma <span style="color:var(--c-sub);font-size:10px;text-transform:none">Google Drive</span></label><input type="url" id="p-link-doc" placeholder="https://drive.google.com/..."></div>
+      </div>
       </div>
       <div class="form-group" style="margin-bottom:1.5rem"><label>Justificación / Notas</label><textarea id="p-notas" rows="2" placeholder="¿Por qué se necesita? Prioridad, contexto, etc." style="resize:vertical"></textarea></div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -1388,6 +1387,7 @@ function renderPipeline(){
           ${s.presupuesto>0?`<span style="font-size:11px;color:var(--c-muted)">${fmtMon(s.presupuesto,s.presupuestoMon||'EUR')}</span>`:''}
         </div>
         ${s.aprobadoPor?`<p style="font-size:10px;color:#5dca8a;margin-top:4px">✓ Aprobado por ${s.aprobadoPor}</p>`:''}
+        ${s.numDoc?`<p style="font-size:10px;color:var(--c-muted);margin-top:2px">Doc: ${s.numDoc}</p>`:''}
         ${s.fecha?`<p style="font-size:10px;color:var(--c-sub);margin-top:2px">📅 ${s.fecha}</p>`:''}
       </div>`).join(''):`<p style="font-size:12px;color:var(--c-sub);text-align:center;padding:1rem 0">Sin solicitudes</p>`;
   });
@@ -1406,13 +1406,12 @@ function verSolicitud(id){
       </div>
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Destino</p><p style="font-size:13px">${s.dest||'—'}</p></div>
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Tipo</p><p style="font-size:13px">${s.tipo||'—'}</p></div>
-      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Cantidad</p><p style="font-size:13px">${s.cantidad||'—'}</p></div>
-      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Precio unitario</p><p style="font-size:13px">${s.precioUnit>0?fmtMon(s.precioUnit,s.precioMon||'EUR'):'—'}</p></div>
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Presupuesto total</p><p style="font-size:14px;font-weight:500;color:var(--c-orange)">${s.presupuesto>0?fmtMon(s.presupuesto,s.presupuestoMon||'EUR'):'—'}</p></div>
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Fecha estimada</p><p style="font-size:13px">${s.fecha||'—'}</p></div>
     </div>
     <div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Producto / Descripción</p><p style="font-size:13px;line-height:1.6;background:var(--c-card);padding:10px;border-radius:var(--rad)">${s.producto||'—'}</p></div>
     ${s.notas?`<div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Justificación / Notas</p><p style="font-size:13px;line-height:1.6;background:var(--c-card);padding:10px;border-radius:var(--rad)">${s.notas}</p></div>`:''}
+    ${s.numDoc?`<div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Número de documento</p><p style="font-size:14px;font-weight:500;color:var(--c-text)">${s.numDoc}</p></div>`:''}
     ${s.linkDoc?`<div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:6px">Orden de compra / Proforma</p><a href="${s.linkDoc}" target="_blank" style="font-size:12px;color:var(--c-orange);text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:rgba(245,200,0,0.1);border-radius:var(--rad);border:0.5px solid rgba(245,200,0,0.3)">📄 Ver documento ↗</a></div>`:''}
     ${s.aprobadoPor?`<div style="padding:10px 14px;background:rgba(93,202,138,0.1);border-left:3px solid #5dca8a;border-radius:0 var(--rad) var(--rad) 0;margin-bottom:12px"><p style="font-size:13px;color:#5dca8a">✓ <strong>Aprobado por ${s.aprobadoPor}</strong> el ${s.fechaAprobacion||''}</p></div>`:''}
     ${s.creadoPor?`<p style="font-size:11px;color:var(--c-sub)">Creado por ${s.creadoPor}</p>`:''}
@@ -1483,15 +1482,13 @@ function abrirFormPipeline(id){
       document.getElementById('p-presupuesto-mon').value=s.presupuestoMon||'EUR';
       document.getElementById('p-fecha').value=s.fecha||'';
       document.getElementById('p-link-doc').value=s.linkDoc||'';
+      document.getElementById('p-num-doc').value=s.numDoc||'';
       document.getElementById('p-notas').value=s.notas||'';
     }
   } else {
     sel.selectedIndex=0;
     document.getElementById('p-estado').value='En evaluación';
-    ['p-producto','p-notas','p-link-doc'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('p-cantidad').value='1';
-    document.getElementById('p-precio-unit').value='0';
-    document.getElementById('p-precio-mon').value='EUR';
+    ['p-producto','p-notas','p-link-doc','p-num-doc'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('p-presupuesto').value='0';
     document.getElementById('p-presupuesto-mon').value='EUR';
     document.getElementById('p-dest').value='Venezuela';
@@ -1499,8 +1496,6 @@ function abrirFormPipeline(id){
     document.getElementById('p-fecha').value='';
   }
   // Auto-calcular presupuesto cuando cambian cantidad o precio
-  document.getElementById('p-cantidad').oninput=calcularPresupuesto;
-  document.getElementById('p-precio-unit').oninput=calcularPresupuesto;
   document.getElementById('pipeline-modal').style.display='flex';
   // Re-poblar proveedor después de que el modal esté visible
   setTimeout(()=>{
@@ -1540,13 +1535,14 @@ function guardarPipeline(){
     producto,
     dest:document.getElementById('p-dest').value,
     tipo:document.getElementById('p-tipo').value,
-    cantidad:parseFloat(document.getElementById('p-cantidad').value)||1,
-    precioUnit:parseFloat(document.getElementById('p-precio-unit').value)||0,
-    precioMon:document.getElementById('p-precio-mon').value,
+    cantidad:1,
+    precioUnit:0,
+    precioMon:'EUR',
     presupuesto:parseFloat(document.getElementById('p-presupuesto').value)||0,
     presupuestoMon:document.getElementById('p-presupuesto-mon').value,
     fecha:document.getElementById('p-fecha').value,
     linkDoc:document.getElementById('p-link-doc').value.trim(),
+    numDoc:document.getElementById('p-num-doc').value.trim(),
     notas:document.getElementById('p-notas').value.trim(),
     creadoPor:existing?existing.creadoPor:usuarioActual,
     aprobadoPor:existing?existing.aprobadoPor:'',
