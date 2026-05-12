@@ -1407,7 +1407,7 @@ function verSolicitud(id){
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Destino</p><p style="font-size:13px">${s.dest||'—'}</p></div>
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Tipo</p><p style="font-size:13px">${s.tipo||'—'}</p></div>
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Presupuesto total</p><p style="font-size:14px;font-weight:500;color:var(--c-orange)">${s.presupuesto>0?fmtMon(s.presupuesto,s.presupuestoMon||'EUR'):'—'}</p></div>
-      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Fecha estimada</p><p style="font-size:13px">${s.fecha||'—'}</p></div>
+      <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Fecha estimada</p><p style="font-size:13px">${s.fecha?s.fecha.substring(0,10):'—'}</p></div>
     </div>
     <div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Producto / Descripción</p><p style="font-size:13px;line-height:1.6;background:var(--c-card);padding:10px;border-radius:var(--rad)">${s.producto||'—'}</p></div>
     ${s.notas?`<div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Justificación / Notas</p><p style="font-size:13px;line-height:1.6;background:var(--c-card);padding:10px;border-radius:var(--rad)">${s.notas}</p></div>`:''}
@@ -1475,9 +1475,7 @@ function abrirFormPipeline(id){
       document.getElementById('p-producto').value=s.producto||'';
       document.getElementById('p-dest').value=s.dest||'Venezuela';
       document.getElementById('p-tipo').value=s.tipo||'Aérea';
-      document.getElementById('p-cantidad').value=s.cantidad||1;
-      document.getElementById('p-precio-unit').value=s.precioUnit||0;
-      document.getElementById('p-precio-mon').value=s.precioMon||'EUR';
+
       document.getElementById('p-presupuesto').value=s.presupuesto||0;
       document.getElementById('p-presupuesto-mon').value=s.presupuestoMon||'EUR';
       document.getElementById('p-fecha').value=s.fecha||'';
@@ -1516,11 +1514,6 @@ function abrirFormPipeline(id){
   },50);
 }
 
-function calcularPresupuesto(){
-  const qty=parseFloat(document.getElementById('p-cantidad').value)||0;
-  const unit=parseFloat(document.getElementById('p-precio-unit').value)||0;
-  if(qty>0&&unit>0) document.getElementById('p-presupuesto').value=(qty*unit).toFixed(2);
-}
 
 function cerrarFormPipeline(){document.getElementById('pipeline-modal').style.display='none';editPipelineId=null;}
 
