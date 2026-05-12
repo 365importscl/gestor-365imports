@@ -1460,8 +1460,9 @@ function abrirFormPipeline(id){
   editPipelineId=id;
   document.getElementById('pipeline-titulo').textContent=id?'Editar solicitud':'Nueva solicitud';
   const sel=document.getElementById('p-prov');
-  // Asegurar que proveedores esté cargado
-  const provs=config.proveedores&&config.proveedores.length?config.proveedores:['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC'];
+  // Cargar proveedores con fallback seguro
+  let provs=['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC'];
+  try{if(config&&config.proveedores&&config.proveedores.length>0)provs=config.proveedores;}catch(e){}
   sel.innerHTML=provs.map(p=>`<option value="${p}">${p}</option>`).join('');
   if(id){
     const s=pipeline.find(x=>x.id===id);
