@@ -393,6 +393,13 @@ input:focus,select:focus{border-color:var(--c-orange)}
     <div id="pipeline-form-contenido">
       <div class="form-row">
         <div class="form-group"><label>Proveedor</label><select id="p-prov"></select></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="p-estado">
+            <option value="En evaluación">En evaluación</option>
+            <option value="Cotizado">Cotizado</option>
+            <option value="Aprobado">Aprobado</option>
+          </select>
+        </div>
         <div class="form-group"><label>Destino</label>
           <select id="p-dest"><option>Venezuela</option><option>Chile</option></select>
         </div>
@@ -1453,11 +1460,14 @@ function abrirFormPipeline(id){
   editPipelineId=id;
   document.getElementById('pipeline-titulo').textContent=id?'Editar solicitud':'Nueva solicitud';
   const sel=document.getElementById('p-prov');
-  sel.innerHTML=config.proveedores.map(p=>`<option value="${p}">${p}</option>`).join('');
+  // Asegurar que proveedores esté cargado
+  const provs=config.proveedores&&config.proveedores.length?config.proveedores:['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC'];
+  sel.innerHTML=provs.map(p=>`<option value="${p}">${p}</option>`).join('');
   if(id){
     const s=pipeline.find(x=>x.id===id);
     if(s){
       sel.value=s.prov||'';
+      document.getElementById('p-estado').value=s.estado||'En evaluación';
       document.getElementById('p-producto').value=s.producto||'';
       document.getElementById('p-dest').value=s.dest||'Venezuela';
       document.getElementById('p-tipo').value=s.tipo||'Aérea';
@@ -1472,6 +1482,7 @@ function abrirFormPipeline(id){
     }
   } else {
     sel.selectedIndex=0;
+    document.getElementById('p-estado').value='En evaluación';
     ['p-producto','p-notas','p-link-doc'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('p-cantidad').value='1';
     document.getElementById('p-precio-unit').value='0';
@@ -1503,7 +1514,7 @@ function guardarPipeline(){
   const d={
     id:editPipelineId||('pip-'+Date.now()),
     prov:document.getElementById('p-prov').value,
-    estado:existing?existing.estado:'En evaluación',
+    estado:editPipelineId?existing.estado:document.getElementById('p-estado').value,
     producto,
     dest:document.getElementById('p-dest').value,
     tipo:document.getElementById('p-tipo').value,
