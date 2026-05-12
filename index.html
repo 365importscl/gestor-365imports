@@ -1429,25 +1429,6 @@ function renderPipeline(){
       </td>
     </tr>`).join('');
 }
-      <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:12px;margin-bottom:8px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--c-orange)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='var(--c-border)';this.style.transform='none'" onclick="verSolicitud('${s.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-          <p style="font-size:12px;font-weight:600;color:var(--c-text);flex:1;line-height:1.4;margin-right:6px">${(s.producto||'Sin descripción').substring(0,55)}${(s.producto||'').length>55?'...':''}</p>
-          ${s.estado!=='Aprobado'&&s.estado!=='Convertido'?`<button onclick="event.stopPropagation();eliminarPipeline('${s.id}')" style="background:none;border:none;color:var(--c-sub);cursor:pointer;font-size:16px;padding:0;line-height:1">×</button>`:''}
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span style="font-size:11px;font-weight:500;color:var(--c-orange)">${s.prov||'—'}</span>
-          ${s.presupuesto>0?`<span style="font-size:12px;font-weight:600;color:var(--c-text)">${fmtMon(s.presupuesto,s.presupuestoMon||'EUR')}</span>`:''}
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span class="badge ${s.dest==='Venezuela'?'b-venezuela':'b-chile'}" style="font-size:9px">${s.dest||'—'}</span>
-          ${s.numDoc?`<span style="font-size:10px;color:var(--c-sub);background:var(--c-dark);padding:2px 6px;border-radius:4px">${s.numDoc}</span>`:''}
-          ${s.fecha?`<span style="font-size:10px;color:var(--c-sub)">${s.fecha}</span>`:''}
-        </div>
-        ${s.aprobadoPor?`<div style="margin-top:8px;padding:4px 8px;background:rgba(93,202,138,0.1);border-radius:4px"><span style="font-size:10px;color:#5dca8a">✓ Aprobado por ${s.aprobadoPor}</span></div>`:''}
-      </div>`).join(''):`<p style="font-size:12px;color:var(--c-sub);text-align:center;padding:1rem 0">Sin solicitudes</p>`;
-  });
-}
-
 function verSolicitud(id){
   const s=pipeline.find(x=>x.id===id);
   if(!s)return;
