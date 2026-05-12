@@ -392,7 +392,11 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <div id="pipeline-form-contenido">
       <div class="form-row">
-        <div class="form-group"><label>Proveedor</label><select id="p-prov"></select></div>
+        <div class="form-group"><label>Proveedor</label><select id="p-prov">
+          <option value="">Seleccionar...</option>
+          <option>Colnago</option><option>DMT</option><option>ABUS</option>
+          <option>Gobik</option><option>Pas Normal Studios</option><option>BMC</option>
+        </select></div>
         <div class="form-group"><label>Estado</label>
           <select id="p-estado">
             <option value="En evaluación">En evaluación</option>
@@ -1501,9 +1505,18 @@ function abrirFormPipeline(id){
   // Re-poblar proveedor después de que el modal esté visible
   setTimeout(()=>{
     const sel2=document.getElementById('p-prov');
-    let provs2=['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC'];
-    try{if(config&&config.proveedores&&config.proveedores.length>0)provs2=config.proveedores;}catch(e){}
-    sel2.innerHTML=provs2.map(p=>`<option value="${p}">${p}</option>`).join('');
+    try{
+      if(config&&config.proveedores&&config.proveedores.length>0){
+        const defaults=['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC',''];
+        config.proveedores.forEach(p=>{
+          if(!defaults.includes(p)){
+            const opt=document.createElement('option');
+            opt.value=p;opt.textContent=p;
+            sel2.appendChild(opt);
+          }
+        });
+      }
+    }catch(e){}
     if(editPipelineId){const s=pipeline.find(x=>x.id===editPipelineId);if(s)sel2.value=s.prov||'';}
   },50);
 }
