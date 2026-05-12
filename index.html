@@ -1600,37 +1600,6 @@ async function cargarPipeline(){
   }catch(e){renderPipeline();}
 }
 
-function renderPipeline(){
-  PIPELINE_ESTADOS.forEach((estado,i)=>{
-    const lista=pipeline.filter(s=>s.estado===estado);
-    document.getElementById(`pipeline-count-${i}`).textContent=`(${lista.length})`;
-    document.getElementById(`pipeline-col-${i}`).innerHTML=lista.length?lista.map(s=>`
-      <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:10px;margin-bottom:8px;cursor:pointer" onclick="abrirFormPipeline('${s.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-          <p style="font-size:12px;font-weight:500;color:var(--c-text);flex:1">${s.producto||'Sin descripción'}</p>
-          <button onclick="event.stopPropagation();eliminarPipeline('${s.id}')" style="background:none;border:none;color:var(--c-sub);cursor:pointer;font-size:14px;padding:0;margin-left:6px">×</button>
-        </div>
-        <p style="font-size:11px;color:var(--c-orange);margin-bottom:4px">${s.prov||'—'}</p>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span class="badge ${s.dest==='Venezuela'?'b-venezuela':'b-chile'}" style="font-size:9px">${s.dest||'—'}</span>
-          ${s.presupuesto>0?`<span style="font-size:11px;color:var(--c-muted)">${fmtMon(s.presupuesto,s.presupuestoMon||'EUR')}</span>`:''}
-        </div>
-        ${s.fecha?`<p style="font-size:10px;color:var(--c-sub);margin-top:4px">📅 ${s.fecha}</p>`:''}
-      </div>`).join(''):`<p style="font-size:12px;color:var(--c-sub);text-align:center;padding:1rem 0">Sin solicitudes</p>`;
-  });
-}
-
-function abrirFormPipeline(id){
-  editPipelineId=id;
-  document.getElementById('pipeline-titulo').textContent=id?'Editar solicitud':'Nueva solicitud';
-  document.getElementById('p-convertir-btn').style.display=id?'block':'none';
-  poblarSelectProv('');
-  document.getElementById('pipeline-modal').style.display='flex';
-}
-
-function cerrarFormPipeline(){document.getElementById('pipeline-modal').style.display='none';editPipelineId=null;}
-
-
 function cambiarTab(t,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
