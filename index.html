@@ -1498,6 +1498,14 @@ function abrirFormPipeline(id){
   document.getElementById('p-cantidad').oninput=calcularPresupuesto;
   document.getElementById('p-precio-unit').oninput=calcularPresupuesto;
   document.getElementById('pipeline-modal').style.display='flex';
+  // Re-poblar proveedor después de que el modal esté visible
+  setTimeout(()=>{
+    const sel2=document.getElementById('p-prov');
+    let provs2=['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC'];
+    try{if(config&&config.proveedores&&config.proveedores.length>0)provs2=config.proveedores;}catch(e){}
+    sel2.innerHTML=provs2.map(p=>`<option value="${p}">${p}</option>`).join('');
+    if(editPipelineId){const s=pipeline.find(x=>x.id===editPipelineId);if(s)sel2.value=s.prov||'';}
+  },50);
 }
 
 function calcularPresupuesto(){
