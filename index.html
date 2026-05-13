@@ -346,7 +346,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <button class="btn-primary" onclick="abrirFormPipeline(null)">+ Nueva solicitud</button>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem">
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem">
     <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #888">
       <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">En evaluación</p>
       <p id="pip-cnt-0" style="font-size:26px;font-weight:500;color:var(--c-text)">0</p>
@@ -363,6 +363,10 @@ input:focus,select:focus{border-color:var(--c-orange)}
       <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Convertidas</p>
       <p id="pip-cnt-3" style="font-size:26px;font-weight:500;color:#5dca8a">0</p>
     </div>
+    <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #e74c3c">
+      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Rechazadas</p>
+      <p id="pip-cnt-4" style="font-size:26px;font-weight:500;color:#e74c3c">0</p>
+    </div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
     <button onclick="filtrarPipeline('')" id="pip-fil-all" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px;background:var(--c-orange);color:#000;border-color:var(--c-orange)">Todos</button>
@@ -370,6 +374,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
     <button onclick="filtrarPipeline('Cotizado')" id="pip-fil-1" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Cotizado</button>
     <button onclick="filtrarPipeline('Aprobado')" id="pip-fil-2" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Aprobado</button>
     <button onclick="filtrarPipeline('Convertido')" id="pip-fil-3" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Convertido</button>
+    <button onclick="filtrarPipeline('Rechazado')" id="pip-fil-4" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Rechazado</button>
   </div>
   <div class="panel" style="padding:0;overflow:hidden">
     <table style="width:100%;border-collapse:collapse">
@@ -1385,7 +1390,7 @@ function filtrarPipeline(estado){
     if(el){el.style.background='';el.style.color='';el.style.borderColor='';}
   });
   const actBtn=estado===''?document.getElementById('pip-fil-all'):
-    document.getElementById(`pip-fil-${['En evaluación','Cotizado','Aprobado','Convertido'].indexOf(estado)}`);
+    document.getElementById(`pip-fil-${['En evaluación','Cotizado','Aprobado','Convertido','Rechazado'].indexOf(estado)}`);
   if(actBtn){actBtn.style.background='var(--c-orange)';actBtn.style.color='#000';actBtn.style.borderColor='var(--c-orange)';}
   renderPipeline();
 }
@@ -1394,17 +1399,18 @@ const ESTADO_BADGE={
   'En evaluación':'background:rgba(136,136,136,0.15);color:#aaa',
   'Cotizado':'background:rgba(111,179,245,0.15);color:#6fb3f5',
   'Aprobado':'background:rgba(245,200,0,0.15);color:#F5C800',
-  'Convertido':'background:rgba(93,202,138,0.15);color:#5dca8a'
+  'Convertido':'background:rgba(93,202,138,0.15);color:#5dca8a',
+  'Rechazado':'background:rgba(231,76,60,0.15);color:#e74c3c'
 };
 
 function renderPipeline(){
   // Update counters
-  ['En evaluación','Cotizado','Aprobado','Convertido'].forEach((e,i)=>{
+  ['En evaluación','Cotizado','Aprobado','Convertido','Rechazado'].forEach((e,i)=>{
     const el=document.getElementById(`pip-cnt-${i}`);
     if(el)el.textContent=pipeline.filter(s=>s.estado===e).length;
   });
   // Filter
-  const lista=pipFiltro?pipeline.filter(s=>s.estado===pipFiltro):pipeline;
+  const lista=pipFiltro?pipeline.filter(s=>s.estado===pipFiltro):pipeline.filter(s=>s.estado!=='Convertido');
   const tbody=document.getElementById('pipeline-tbody');
   const empty=document.getElementById('pipeline-empty');
   if(!tbody)return;
@@ -1450,6 +1456,7 @@ function verSolicitud(id){
     ${s.numDoc?`<div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Número de documento</p><p style="font-size:14px;font-weight:500;color:var(--c-text)">${s.numDoc}</p></div>`:''}
     ${s.linkDoc?`<div style="margin-bottom:12px"><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:6px">Orden de compra / Proforma</p><a href="${s.linkDoc}" target="_blank" style="font-size:12px;color:var(--c-orange);text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:rgba(245,200,0,0.1);border-radius:var(--rad);border:0.5px solid rgba(245,200,0,0.3)">📄 Ver documento ↗</a></div>`:''}
     ${s.aprobadoPor?`<div style="padding:10px 14px;background:rgba(93,202,138,0.1);border-left:3px solid #5dca8a;border-radius:0 var(--rad) var(--rad) 0;margin-bottom:12px"><p style="font-size:13px;color:#5dca8a">✓ <strong>Aprobado por ${s.aprobadoPor}</strong> el ${s.fechaAprobacion||''}</p></div>`:''}
+    ${s.estado==='Rechazado'&&s.motivoRechazo?`<div style="padding:10px 14px;background:rgba(231,76,60,0.1);border-left:3px solid #e74c3c;border-radius:0 var(--rad) var(--rad) 0;margin-bottom:12px"><p style="font-size:13px;color:#e74c3c">✗ <strong>Rechazado por ${s.rechazadoPor||'—'}</strong> el ${s.fechaRechazo||''}</p><p style="font-size:12px;color:#e74c3c;margin-top:4px">Motivo: ${s.motivoRechazo}</p></div>`:''}
     ${s.creadoPor?`<p style="font-size:11px;color:var(--c-sub)">Creado por ${s.creadoPor}</p>`:''}
   `;
   const acciones=document.getElementById('pipeline-ver-acciones');
@@ -1465,6 +1472,11 @@ function verSolicitud(id){
     acciones.appendChild(btnEditar);
   }
   if(puedeAprobar){
+    const btnRechazar=document.createElement('button');
+    btnRechazar.className='btn-ghost';btnRechazar.textContent='✗ Rechazar';
+    btnRechazar.style.cssText='color:#e74c3c;border-color:rgba(231,76,60,0.4)';
+    btnRechazar.onclick=()=>rechazarSolicitud(id);
+    acciones.appendChild(btnRechazar);
     const btnAprobar=document.createElement('button');
     btnAprobar.className='btn-primary';btnAprobar.textContent='✓ Aprobar solicitud';
     btnAprobar.onclick=()=>aprobarSolicitud(id);
@@ -1493,6 +1505,22 @@ function aprobarSolicitud(id){
   guardarPipelineEnSheets();
   // Mostrar confirmación
   setStatus('ok','Solicitud aprobada por '+usuarioActual+' · '+hora());
+}
+
+function rechazarSolicitud(id){
+  const motivo=prompt('Motivo del rechazo:');
+  if(motivo===null)return;
+  if(!motivo.trim()){alert('Debes ingresar un motivo');return;}
+  const s=pipeline.find(x=>x.id===id);
+  if(!s)return;
+  s.estado='Rechazado';
+  s.rechazadoPor=usuarioActual;
+  s.fechaRechazo=new Date().toLocaleDateString('es-ES');
+  s.motivoRechazo=motivo.trim();
+  cerrarVerPipeline();
+  renderPipeline();
+  guardarPipelineEnSheets();
+  setStatus('ok','Solicitud rechazada · '+hora());
 }
 
 function abrirFormPipeline(id){
@@ -1575,7 +1603,10 @@ function guardarPipeline(){
     notas:document.getElementById('p-notas').value.trim(),
     creadoPor:existing?existing.creadoPor:usuarioActual,
     aprobadoPor:existing?existing.aprobadoPor:'',
-    fechaAprobacion:existing?existing.fechaAprobacion:''
+    fechaAprobacion:existing?existing.fechaAprobacion:'',
+    rechazadoPor:existing?existing.rechazadoPor:'',
+    fechaRechazo:existing?existing.fechaRechazo:'',
+    motivoRechazo:existing?existing.motivoRechazo:''
   };
   if(editPipelineId){const i=pipeline.findIndex(x=>x.id===editPipelineId);if(i>=0)pipeline[i]=d;}
   else pipeline.unshift(d);
@@ -1619,7 +1650,10 @@ async function cargarPipeline(){
       ...s,
       presupuesto:parseFloat(s.presupuesto)||0,
       precioUnit:parseFloat(s.precioUnit)||0,
-      cantidad:parseFloat(s.cantidad)||1
+      cantidad:parseFloat(s.cantidad)||1,
+      rechazadoPor:s.rechazadoPor||'',
+      fechaRechazo:s.fechaRechazo||'',
+      motivoRechazo:s.motivoRechazo||''
     }));
     renderPipeline();
   }catch(e){renderPipeline();}
