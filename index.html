@@ -523,6 +523,14 @@ input:focus,select:focus{border-color:var(--c-orange)}
           <option value="fedex">FedEx</option>
           <option value="dhl">DHL</option>
           <option value="ups">UPS</option>
+          <option value="chilexpress">Chilexpress</option>
+          <option value="mrw">MRW Venezuela</option>
+          <option value="zoom">Zoom</option>
+          <option value="tealca">Tealca</option>
+          <option value="mbe">MBE</option>
+          <option value="domesa">Domesa</option>
+          <option value="liberty">Liberty Express</option>
+          <option value="aerocav">Aerocav</option>
           <option value="tnt">TNT</option>
           <option value="maersk">Maersk</option>
           <option value="msc">MSC</option>
@@ -667,6 +675,14 @@ const CARRIER_URLS={
   fedex:   n=>`https://www.fedex.com/fedextrack/?trknbr=${n}`,
   dhl:     n=>`https://www.dhl.com/es-es/home/rastreo.html?tracking-id=${n}`,
   ups:     n=>`https://www.ups.com/track?tracknum=${n}`,
+  chilexpress: n=>`https://www.chilexpress.cl/Views/ServicioAlCliente/EstadoEnvios.aspx?cod=${n}`,
+  mrw:     n=>`copy:https://mrwve.com/`,
+  zoom:    n=>`copy:https://zoom.red/tracking-de-envios-personas/`,
+  tealca:  n=>`copy:https://www.tealca.com/rastrear-envio/`,
+  mbe:     n=>`copy:https://www.mbe.es/seguimiento/`,
+  domesa:  n=>`copy:https://www.domesa.com.ve/`,
+  liberty: n=>`copy:https://www.libertyexpress.com.ve/`,
+  aerocav: n=>`copy:https://www.aerocav.com/`,
   tnt:     n=>`https://www.tnt.com/express/es_es/site/herramientas-envio/seguimiento.html?searchType=CON&cons=${n}`,
   maersk:  n=>`https://www.maersk.com/tracking/${n}`,
   msc:     n=>`https://www.msc.com/track-a-shipment?agencyPath=mwi&bl=${n}`,
@@ -683,6 +699,17 @@ function getTrackingURL(carrier, numero, customUrl){
   if(!carrier||!numero) return '';
   if(carrier==='custom') return customUrl||'';
   return CARRIER_URLS[carrier]?CARRIER_URLS[carrier](numero):'';
+}
+
+function isCopyCarrier(carrier){
+  if(!carrier) return false;
+  const url=CARRIER_URLS[carrier]?CARRIER_URLS[carrier]('X'):'';
+  return url.startsWith('copy:');
+}
+
+function getCopyCarrierURL(carrier){
+  const url=CARRIER_URLS[carrier]?CARRIER_URLS[carrier]('X'):'';
+  return url.startsWith('copy:')?url.slice(5):'';
 }
 
 function actualizarCarrierURL(){
@@ -1073,7 +1100,20 @@ function verDetalle(id){
       <div class="detalle-grid" style="margin-bottom:1rem">
         <div class="detalle-field"><span class="detalle-label">Proveedor</span><span class="detalle-val">${o.prov}</span></div>
         <div class="detalle-field"><span class="detalle-label">Mercancía</span><span class="detalle-val">${o.merc||'—'}</span></div>
-        <div class="detalle-field"><span class="detalle-label">Documento / Guía</span><span class="detalle-val">${(()=>{const url=getTrackingURL(o.carrier,o.doc,o.carrierUrlCustom);const carrier=o.carrier?o.carrier.toUpperCase():'';return url?`<a href="${url}" target="_blank" style="color:var(--c-orange);text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(232,119,34,0.1);border-radius:var(--rad);border:0.5px solid rgba(232,119,34,0.3);font-size:12px">${o.doc||'Ver rastreo'} ${carrier?'· '+carrier:''} ↗</a>`:(o.doc||'—');})()}</span></div>
+        <div class="detalle-field"><span class="detalle-label">Documento / Guía</span><span class="detalle-val">${(()=>{
+          const url=getTrackingURL(o.carrier,o.doc,o.carrierUrlCustom);
+          const carrier=o.carrier?o.carrier.toUpperCase():'';
+          if(!url||!o.doc) return o.doc||'—';
+          if(url.startsWith('copy:')){
+            const siteUrl=url.slice(5);
+            return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:13px;font-weight:500;color:var(--c-text)">${o.doc}</span>
+              <button onclick="navigator.clipboard.writeText('${o.doc}').then(()=>{this.textContent='¡Copiado!';setTimeout(()=>this.textContent='Copiar número',1500)})" style="font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid var(--c-orange);background:transparent;cursor:pointer;color:var(--c-orange)">Copiar número</button>
+              <a href="${siteUrl}" target="_blank" style="font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid var(--c-border);background:transparent;text-decoration:none;color:var(--c-sub)">Abrir ${carrier} ↗</a>
+            </div>`;
+          }
+          return `<a href="${url}" target="_blank" style="color:var(--c-orange);text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(232,119,34,0.1);border-radius:var(--rad);border:0.5px solid rgba(232,119,34,0.3);font-size:12px">${o.doc||'Ver rastreo'} ${carrier?'· '+carrier:''} ↗</a>`;
+        })()}</span></div>
         <div class="detalle-field"><span class="detalle-label">ETD — Fecha de envío</span><span class="detalle-val">${o.etd||'—'}</span></div>
         <div class="detalle-field"><span class="detalle-label">ETA — Fecha de llegada</span><span class="detalle-val">${o.eta||'—'}</span></div>
         <div class="detalle-field"><span class="detalle-label">Estado</span><span class="detalle-val">${o.estado}</span></div>
