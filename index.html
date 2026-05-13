@@ -1046,7 +1046,7 @@ function renderTabla(){
   empty.style.display='none';
   document.getElementById('tbody').innerHTML=list.map(o=>`
     <tr style="${detalleId===o.id?'background:rgba(232,119,34,0.07)':''}">
-      <td style="font-weight:500">${(()=>{const url=getTrackingURL(o.carrier,o.doc,o.carrierUrlCustom);return url?`<a href="${url}" target="_blank" style="color:var(--c-orange);text-decoration:none;display:flex;align-items:center;gap:4px" title="Ver rastreo">${o.ref} <span style="font-size:10px">↗</span></a>`:`<span style="color:var(--c-orange)">${o.ref}</span>`;})()}</td>
+      <td style="font-weight:500">${(()=>{const url=getTrackingURL(o.carrier,o.doc,o.carrierUrlCustom);if(!url||url.startsWith('copy:'))return`<span style="color:var(--c-orange)">${o.ref}</span>`;return`<a href="${url}" target="_blank" style="color:var(--c-orange);text-decoration:none;display:flex;align-items:center;gap:4px" title="Ver rastreo">${o.ref} <span style="font-size:10px">↗</span></a>`;})()}</td>
       <td style="color:var(--c-muted);font-size:11px">${o.prov}</td>
       <td><span class="badge ${o.tipo==='Aérea'?'b-aerea':'b-maritima'}">${o.tipo}</span></td>
       <td><span class="badge ${o.dest==='Venezuela'?'b-venezuela':'b-chile'}">${o.dest}</span></td>
