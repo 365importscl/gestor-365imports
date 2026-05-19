@@ -138,7 +138,14 @@ input:focus,select:focus{border-color:var(--c-orange)}
     <span id="usuario-badge" class="usuario-badge"></span>
     <button class="btn-config" onclick="abrirConfig()">⚙ Configuración</button>
     <button class="btn-sync" id="btn-sync" onclick="sincronizar()">↻ Sincronizar</button>
-    <button class="btn-ghost" onclick="exportarCSV()">Exportar CSV</button>
+    <div style="position:relative;display:inline-block" id="export-wrap">
+      <button class="btn-ghost" onclick="toggleExportMenu()" style="display:flex;align-items:center;gap:6px">Exportar <span style="font-size:10px">▾</span></button>
+      <div id="export-menu" style="display:none;position:absolute;top:110%;right:0;background:var(--c-dark);border:0.5px solid var(--c-border);border-radius:var(--rad);min-width:200px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.3)">
+        <button onclick="exportarCSV();toggleExportMenu()" style="width:100%;text-align:left;padding:10px 16px;font-size:13px;background:none;border:none;color:var(--c-text);cursor:pointer;border-bottom:0.5px solid var(--c-border)" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background='none'">📦 Exportar órdenes</button>
+        <button onclick="exportarPipelineCSV();toggleExportMenu()" style="width:100%;text-align:left;padding:10px 16px;font-size:13px;background:none;border:none;color:var(--c-text);cursor:pointer;border-bottom:0.5px solid var(--c-border)" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background='none'">📋 Exportar solicitudes</button>
+        <button onclick="exportarHistorialCSV();toggleExportMenu()" style="width:100%;text-align:left;padding:10px 16px;font-size:13px;background:none;border:none;color:var(--c-text);cursor:pointer" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background='none'">🗂 Exportar historial</button>
+      </div>
+    </div>
     <button class="btn-ghost" onclick="archivarEntregadas()" style="color:#5dca8a;border-color:rgba(46,204,113,0.3)">📦 Archivar entregadas</button>
     <button class="btn-primary" onclick="abrirForm(null)">+ Nueva orden</button>
     <button onclick="cerrarSesion()" style="background:rgba(231,76,60,0.12);color:#e74c3c;border:0.5px solid rgba(231,76,60,0.3);border-radius:var(--rad);padding:7px 14px;font-size:12px;cursor:pointer">Salir</button>
@@ -293,9 +300,29 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn-sync" onclick="cargarHistorial()">↻ Actualizar</button>
-      <button class="btn-ghost" onclick="exportarHistorialCSV()">Exportar CSV</button>
       <button class="btn-ghost" onclick="exportarHistorialExcel()" style="color:#5dca8a;border-color:rgba(46,204,113,0.3)">⬇ Descargar Excel</button>
     </div>
+  </div>
+
+  <!-- HISTORIAL SOLICITUDES -->
+  <div class="panel" style="margin-bottom:1.5rem;padding:0;overflow:hidden">
+    <div style="padding:12px 16px;border-bottom:0.5px solid var(--c-border);display:flex;align-items:center;justify-content:space-between">
+      <p style="font-size:13px;font-weight:500;color:var(--c-white)">Solicitudes convertidas y rechazadas</p>
+      <span id="pip-hist-count" style="font-size:11px;color:var(--c-sub)"></span>
+    </div>
+    <table style="width:100%;border-collapse:collapse" id="pip-hist-table">
+      <thead>
+        <tr style="border-bottom:0.5px solid var(--c-border)">
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase">Producto</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase">Proveedor</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase">Estado</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase">Presupuesto</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--c-sub);text-transform:uppercase">Detalle</th>
+        </tr>
+      </thead>
+      <tbody id="pip-hist-tbody"></tbody>
+    </table>
+    <p id="pip-hist-empty" style="text-align:center;padding:2rem;font-size:13px;color:var(--c-sub)">Sin solicitudes convertidas o rechazadas aún.</p>
   </div>
 
   <!-- FILTROS HISTORIAL -->
@@ -858,6 +885,11 @@ function renderDashboard(){
   const factEUR=ordenes.filter(o=>o.facturaMan==='EUR'||!o.facturaMan).reduce((s,o)=>s+(o.factura||0),0);
   const factUSD=ordenes.filter(o=>o.facturaMan==='USD').reduce((s,o)=>s+(o.factura||0),0);
 
+  // Pipeline summary for dashboard
+  const pipPendientes=pipeline.filter(s=>s.estado==='En evaluación'||s.estado==='Cotizado').length;
+  const pipAprobadas=pipeline.filter(s=>s.estado==='Aprobado').length;
+  const pipRechazadas=pipeline.filter(s=>s.estado==='Rechazado').length;
+
   document.getElementById('dash-kpis').innerHTML=`
     <div class="dash-kpi"><div class="dash-kpi-label">Total órdenes</div><div class="dash-kpi-val">${total}</div><div class="dash-kpi-sub">${enCurso} en curso · ${entregadas} entregadas</div></div>
     <div class="dash-kpi"><div class="dash-kpi-label">En Madrid</div><div class="dash-kpi-val" style="color:var(--c-orange)">${enMadrid}</div><div class="dash-kpi-sub">Pendientes de despacho</div></div>
@@ -866,6 +898,27 @@ function renderDashboard(){
     <div class="dash-kpi"><div class="dash-kpi-label">Facturado EUR</div><div class="dash-kpi-val" style="font-size:18px">${fmtMon(factEUR,'EUR')}</div><div class="dash-kpi-sub">Total acumulado</div></div>
     <div class="dash-kpi"><div class="dash-kpi-label">Facturado USD</div><div class="dash-kpi-val" style="font-size:18px;color:#5dca8a">${fmtMon(factUSD,'USD')}</div><div class="dash-kpi-sub">Total acumulado</div></div>
   `;
+
+  // Pipeline summary card
+  const pipHTML=pipPendientes>0||pipAprobadas>0?`
+    <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad-lg);padding:1rem;margin-bottom:1rem;border-left:3px solid var(--c-orange)">
+      <p style="font-size:11px;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Solicitudes de compra</p>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        ${pipPendientes>0?`<div><p style="font-size:22px;font-weight:500;color:var(--c-orange)">${pipPendientes}</p><p style="font-size:11px;color:var(--c-sub)">Pendientes de aprobación</p></div>`:''}
+        ${pipAprobadas>0?`<div><p style="font-size:22px;font-weight:500;color:#F5C800">${pipAprobadas}</p><p style="font-size:11px;color:var(--c-sub)">Aprobadas por convertir</p></div>`:''}
+        ${pipRechazadas>0?`<div><p style="font-size:22px;font-weight:500;color:#e74c3c">${pipRechazadas}</p><p style="font-size:11px;color:var(--c-sub)">Rechazadas</p></div>`:''}
+      </div>
+    </div>`:''
+  ;
+  const dashRecientes=document.getElementById('dash-recientes');
+  if(dashRecientes&&!document.getElementById('pip-dash-card')){
+    const pipDiv=document.createElement('div');
+    pipDiv.id='pip-dash-card';
+    pipDiv.innerHTML=pipHTML;
+    dashRecientes.parentNode.insertBefore(pipDiv,dashRecientes);
+  } else if(document.getElementById('pip-dash-card')){
+    document.getElementById('pip-dash-card').innerHTML=pipHTML;
+  }
 
   // ESTADOS
   const estadoCounts=ESTADOS.map(e=>({e,n:ordenes.filter(o=>o.estado===e).length}));
@@ -1696,7 +1749,8 @@ async function cargarPipeline(){
       motivoRechazo:s.motivoRechazo||''
     }));
     renderPipeline();
-  }catch(e){renderPipeline();}
+    renderPipelineHistorial();
+  }catch(e){renderPipeline();renderPipelineHistorial();}
 }
 
 function cambiarTab(t,btn){
@@ -1707,7 +1761,7 @@ function cambiarTab(t,btn){
     if(el) el.style.display=x===t?'block':'none';
   });
   if(t!=='ordenes')cerrarDetalle();
-  if(t==='historial')cargarHistorial();
+  if(t==='historial'){cargarHistorial();renderPipelineHistorial();}
   if(t==='pipeline')cargarPipeline();
 }
 let historial=[];
@@ -1787,6 +1841,41 @@ async function archivarEntregadas(){
   renderTodo();
 }
 
+function renderPipelineHistorial(){
+  const lista=pipeline.filter(s=>s.estado==='Convertido'||s.estado==='Rechazado');
+  const tbody=document.getElementById('pip-hist-tbody');
+  const empty=document.getElementById('pip-hist-empty');
+  const count=document.getElementById('pip-hist-count');
+  if(!tbody)return;
+  if(count)count.textContent=lista.length+' registros';
+  if(!lista.length){tbody.innerHTML='';if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  tbody.innerHTML=lista.map(s=>{
+    const badgeStyle=s.estado==='Convertido'?'background:rgba(93,202,138,0.15);color:#5dca8a':'background:rgba(231,76,60,0.15);color:#e74c3c';
+    const detalle=s.estado==='Convertido'?(s.aprobadoPor?'Aprobado por '+s.aprobadoPor:'—'):(s.motivoRechazo?s.motivoRechazo.substring(0,40):'—');
+    const producto=(s.producto||'—').substring(0,45)+((s.producto||'').length>45?'...':'');
+    return `<tr style="border-bottom:0.5px solid var(--c-border);cursor:pointer" onclick="verSolicitud('${s.id}')">
+      <td style="padding:10px 14px;font-size:12px;color:var(--c-text)">${producto}</td>
+      <td style="padding:10px 14px;font-size:12px;color:var(--c-orange)">${s.prov||'—'}</td>
+      <td style="padding:10px 14px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;${badgeStyle}">${s.estado}</span></td>
+      <td style="padding:10px 14px;font-size:12px;color:var(--c-text)">${s.presupuesto>0?fmtMon(s.presupuesto,s.presupuestoMon||'EUR'):'—'}</td>
+      <td style="padding:10px 14px;font-size:11px;color:var(--c-sub)">${detalle}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportarPipelineCSV(){
+  if(!pipeline.length){alert('No hay solicitudes para exportar');return;}
+  const cols=['id','prov','estado','producto','dest','tipo','presupuesto','presupuestoMon','fecha','numDoc','linkDoc','notas','creadoPor','aprobadoPor','fechaAprobacion','rechazadoPor','fechaRechazo','motivoRechazo'];
+  const headers=['ID','Proveedor','Estado','Producto','Destino','Tipo','Presupuesto','Moneda','Fecha','Num.Doc','Link Doc','Notas','Creado por','Aprobado por','Fecha aprobación','Rechazado por','Fecha rechazo','Motivo rechazo'];
+  const rows=pipeline.map(s=>cols.map(c=>`"${String(s[c]||'').replace(/"/g,'""')}"`).join(','));
+  const csv='sep=,\n'+headers.join(',')+rows.join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='solicitudes_365imports_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
 function exportarHistorialCSV(){
   if(!historial.length){alert('No hay datos en el historial.');return;}
   const cols=['Ref','Proveedor','Tipo','Destino','Estado','Mercancía','Factura','Mon.Factura','Flete','Mon.Flete','Aduana','Mon.Aduana','Otros','Mon.Otros','ETD','ETA','Notas','Links Facturas','Links Comprobantes','Fecha archivo'];
@@ -1821,6 +1910,15 @@ function exportarHistorialExcel(){
   a.download='365imports_historial_'+new Date().toLocaleDateString('es-ES').replace(/\//g,'-')+'.xls';a.click();
 }
 
+
+function toggleExportMenu(){
+  const menu=document.getElementById('export-menu');
+  menu.style.display=menu.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('export-wrap');
+  if(wrap&&!wrap.contains(e.target)) document.getElementById('export-menu').style.display='none';
+});
 
 function exportarCSV(){
   const cols=['Ref','Proveedor','Tipo','Destino','Estado','Documento','Mercancía','Factura','Mon.Factura','Flete','Mon.Flete','Aduana','Mon.Aduana','Otros','Mon.Otros','Fecha compra','ETA destino','Notas'];
