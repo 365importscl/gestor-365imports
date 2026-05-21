@@ -659,6 +659,12 @@ input:focus,select:focus{border-color:var(--c-orange)}
 
 <script>
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycbwaDEf6hwWuvIBTEwFuSucMsstaP-XTDo-IUNsE_BwJx08Lp0FjzaF0Aqz6zM8Uf7U/exec';
+
+// Helper: envía JSON a GAS sin Content-Type (compatible con no-cors)
+async function postAGAS(payload) {
+  const blob = new Blob([JSON.stringify(payload)], {type: 'text/plain'});
+  return fetch(SCRIPT_URL, {method: 'POST', mode: 'no-cors', body: blob});
+}
 const ESTADOS=['Comprado','En tránsito a Madrid','En Madrid','Enviado al destino','Aduana','Entregado'];
 const ESTADO_COLORS=['#888','#6fb3f5','#f09040','#5dca8a','#e67e22','#2ecc71'];
 const ESTADO_EP=['ep-0','ep-1','ep-2','ep-3','ep-4'];
@@ -833,14 +839,13 @@ async function cargarDesdeSheets(silencioso=false){
 async function guardarEnSheets(cambios,correosOverride){
   const correosEnvio=correosOverride||config.correos;
   try{
-    await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'save_all',ordenes,cambios:cambios||[],correos:correosEnvio})});
+    await postAGAS({action:'save_all',ordenes,cambios:cambios||[],correos:correosEnvio});
     setStatus('ok','Guardado en Google Sheets · '+hora());
   }catch(e){setStatus('err','No se pudo guardar. Revisa tu conexión.');}
 }
 
 async function guardarConfigEnSheets(){
-  try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_config',config})});}catch(e){}
+  try{await postAGAS({action:'save_config',config});}catch(e){}
 }
 
 function sincronizar(){cargarDesdeSheets();}
@@ -1731,8 +1736,7 @@ function convertirEnOrden(id){
 }
 
 async function guardarPipelineEnSheets(){
-  try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'save_pipeline',pipeline})});}catch(e){}
+  try{await postAGAS({action:'save_pipeline',pipeline});}catch(e){}
 }
 
 async function cargarPipeline(){
@@ -1834,8 +1838,7 @@ async function archivarEntregadas(){
   ordenes=ordenes.filter(o=>o.estado!=='Entregado');
   setStatus('loading','Archivando órdenes...');
   try{
-    await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'archivar',ordenes_archivo:paraArchivar,ordenes_activas:ordenes})});
+    await postAGAS({action:'archivar',ordenes_archivo:paraArchivar,ordenes_activas:ordenes});
     setStatus('ok',`${entregadas.length} orden(es) archivada(s) correctamente · `+hora());
   }catch(e){setStatus('err','Error al archivar. Revisa tu conexión.');}
   renderTodo();
