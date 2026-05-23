@@ -1246,7 +1246,8 @@ async function cambiarEstado(id,nuevoEstado){
     factura:o.factura,facturaMan:o.facturaMan||'EUR',flete:o.flete,fleteMan:o.fleteMan||'EUR',
     aduana:o.aduana,aduanaMan:o.aduanaMan||'EUR',otros:o.otros,otrosMan:o.otrosMan||'EUR',
     estadoAnterior,estadoNuevo:nuevoEstado,
-    recibidoPor:usuarioActual||'',
+    recibidoPor:nuevoEstado==='Entregado'?(usuarioActual||''):'',
+    modificadoPor:nuevoEstado!=='Entregado'?(usuarioActual||''):'',
     linksFactura:o.linksFactura||[],
     linksComprobante:o.linksComprobante||[]
   }]:[];
