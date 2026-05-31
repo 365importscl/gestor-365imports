@@ -456,10 +456,21 @@ input:focus,select:focus{border-color:var(--c-orange)}
       </div>
       <div class="form-row">
         <div class="form-group"><label>Fecha estimada de compra</label><input type="date" id="p-fecha"></div>
+        <div class="form-group"><label>Estado de pago</label>
+          <select id="p-pago-estado">
+            <option value="Pendiente">Pendiente</option>
+            <option value="Anticipo">Anticipo pagado</option>
+            <option value="Pagado">Pagado completo</option>
+          </select>
+        </div>
+      </div>
       <div class="form-row">
         <div class="form-group"><label>Número de documento <span style="color:var(--c-sub);font-size:10px;text-transform:none">Proforma / Orden</span></label><input type="text" id="p-num-doc" placeholder="Ej: PRF-2026-001"></div>
-        <div class="form-group"><label>Link orden de compra / proforma <span style="color:var(--c-sub);font-size:10px;text-transform:none">Google Drive</span></label><input type="url" id="p-link-doc" placeholder="https://drive.google.com/..."></div>
+        <div class="form-group"><label>Link proforma / orden de compra <span style="color:var(--c-sub);font-size:10px;text-transform:none">Google Drive</span></label><input type="url" id="p-link-doc" placeholder="https://drive.google.com/..."></div>
       </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>Link comprobante de pago <span style="color:var(--c-sub);font-size:10px;text-transform:none">Google Drive — opcional</span></label>
+        <input type="url" id="p-link-pago" placeholder="https://drive.google.com/...">
       </div>
       <div class="form-group" style="margin-bottom:1.5rem"><label>Justificación / Notas</label><textarea id="p-notas" rows="2" placeholder="¿Por qué se necesita? Prioridad, contexto, etc." style="resize:vertical"></textarea></div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -1566,7 +1577,8 @@ function verSolicitud(id){
   const s=pipeline.find(x=>x.id===id);
   if(!s)return;
   const aprobada=s.estado==='Aprobado'||s.estado==='Convertido';
-  const puedeAprobar=usuarioActual==='Ronney'&&s.estado==='En evaluación'||usuarioActual==='Ronney'&&s.estado==='Cotizado';
+  const aprobadores=['Ronney','Raymond','Eugenia'];
+  const puedeAprobar=aprobadores.includes(usuarioActual)&&(s.estado==='En evaluación'||s.estado==='Cotizado');
   document.getElementById('pipeline-ver-contenido').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Proveedor</p><p style="font-size:14px;font-weight:500;color:var(--c-orange)">${s.prov||'—'}</p></div>
@@ -1620,7 +1632,7 @@ function verSolicitud(id){
 
 function cerrarVerPipeline(){document.getElementById('pipeline-ver-modal').style.display='none';}
 
-function aprobarSolicitud(id){
+async function aprobarSolicitud(id){
   if(!confirm('¿Aprobar esta solicitud de compra?'))return;
   const s=pipeline.find(x=>x.id===id);
   if(!s)return;
@@ -1630,8 +1642,18 @@ function aprobarSolicitud(id){
   cerrarVerPipeline();
   renderPipeline();
   guardarPipelineEnSheets();
-  // Mostrar confirmación
   setStatus('ok','Solicitud aprobada por '+usuarioActual+' · '+hora());
+  // Notificar a Logística
+  const correosLogistica=[...new Set([...(config.deptos?.logistica||[])])];
+  if(correosLogistica.length){
+    await postAGAS({
+      action:'notificar_solicitud',
+      solicitud:s,
+      correos:correosLogistica,
+      tipo:'solicitud_aprobada',
+      aprobadoPor:usuarioActual
+    });
+  }
 }
 
 function rechazarSolicitud(id){
@@ -1666,10 +1688,11 @@ function abrirFormPipeline(id){
       document.getElementById('p-producto').value=s.producto||'';
       document.getElementById('p-dest').value=s.dest||'Venezuela';
       document.getElementById('p-tipo').value=s.tipo||'Aérea';
-
       document.getElementById('p-presupuesto').value=s.presupuesto||0;
       document.getElementById('p-presupuesto-mon').value=s.presupuestoMon||'EUR';
       document.getElementById('p-fecha').value=s.fecha||'';
+      document.getElementById('p-link-pago').value=s.linkPago||'';
+      document.getElementById('p-pago-estado').value=s.pagoEstado||'Pendiente';
       document.getElementById('p-link-doc').value=s.linkDoc||'';
       document.getElementById('p-num-doc').value=s.numDoc||'';
       document.getElementById('p-notas').value=s.notas||'';
@@ -1677,7 +1700,8 @@ function abrirFormPipeline(id){
   } else {
     sel.selectedIndex=0;
     document.getElementById('p-estado').value='En evaluación';
-    ['p-producto','p-notas','p-link-doc','p-num-doc'].forEach(x=>document.getElementById(x).value='');
+    ['p-producto','p-notas','p-link-doc','p-num-doc','p-link-pago'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('p-pago-estado').value='Pendiente';
     document.getElementById('p-presupuesto').value='0';
     document.getElementById('p-presupuesto-mon').value='EUR';
     document.getElementById('p-dest').value='Venezuela';
@@ -1712,6 +1736,7 @@ function guardarPipeline(){
   const producto=document.getElementById('p-producto').value.trim();
   if(!producto){alert('Ingresa la descripción del producto');return;}
   const existing=editPipelineId?pipeline.find(x=>x.id===editPipelineId):null;
+  const esNueva = !editPipelineId;
   const d={
     id:editPipelineId||('pip-'+Date.now()),
     prov:document.getElementById('p-prov').value,
@@ -1727,6 +1752,8 @@ function guardarPipeline(){
     fecha:document.getElementById('p-fecha').value,
     linkDoc:document.getElementById('p-link-doc').value.trim(),
     numDoc:document.getElementById('p-num-doc').value.trim(),
+    linkPago:document.getElementById('p-link-pago').value.trim(),
+    pagoEstado:document.getElementById('p-pago-estado').value,
     notas:document.getElementById('p-notas').value.trim(),
     creadoPor:existing?existing.creadoPor:usuarioActual,
     aprobadoPor:existing?existing.aprobadoPor:'',
@@ -1739,6 +1766,18 @@ function guardarPipeline(){
   else pipeline.unshift(d);
   cerrarFormPipeline();renderPipeline();
   guardarPipelineEnSheets();
+  // Notificar a Gerencia cuando se crea una solicitud nueva
+  if(esNueva){
+    const correosGerencia=[...new Set([...(config.deptos?.gerencia||[])])];
+    if(correosGerencia.length){
+      postAGAS({
+        action:'notificar_solicitud',
+        solicitud:d,
+        correos:correosGerencia,
+        tipo:'nueva_solicitud'
+      });
+    }
+  }
 }
 
 function eliminarPipeline(id){
