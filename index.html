@@ -510,14 +510,18 @@ input:focus,select:focus{border-color:var(--c-orange)}
       <button class="btn-primary" style="padding:8px 16px;white-space:nowrap" onclick="agregarProveedor()">Agregar</button>
     </div>
     <hr class="divider">
-    <p style="font-size:11px;color:var(--c-orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Correos para notificaciones</p>
-    <p style="font-size:12px;color:var(--c-muted);margin-bottom:10px">Recibirán un email cada vez que cambie el estado de una orden.</p>
+    <p style="font-size:11px;color:var(--c-orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Correos generales</p>
+    <p style="font-size:12px;color:var(--c-muted);margin-bottom:10px">Recibirán un email cada vez que cambie el estado de cualquier orden.</p>
     <div id="lista-correos" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:4px"></div>
     <div style="display:flex;gap:8px;margin-bottom:1.5rem">
       <input type="email" id="nuevo-correo" placeholder="correo@ejemplo.com" style="flex:1">
       <button class="btn-primary" style="padding:8px 16px;white-space:nowrap" onclick="agregarCorreo()">Agregar</button>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px">
+    <hr class="divider">
+    <p style="font-size:11px;color:var(--c-orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Correos por departamento</p>
+    <p style="font-size:12px;color:var(--c-muted);margin-bottom:14px">Notificaciones especiales según el estado de la orden.</p>
+    <div id="lista-deptos"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">
       <button class="btn-ghost" onclick="cerrarConfig()">Cancelar</button>
       <button class="btn-primary" onclick="guardarConfig()">Guardar configuración</button>
     </div>
@@ -670,7 +674,17 @@ const ESTADO_COLORS=['#888','#6fb3f5','#f09040','#5dca8a','#e67e22','#2ecc71'];
 const ESTADO_EP=['ep-0','ep-1','ep-2','ep-3','ep-4'];
 
 let ordenes=[],nid=1,detalleId=null,editId=null,delId=null;
-let config={correos:[],proveedores:['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC']};
+let config={
+  correos:[],
+  proveedores:['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC'],
+  deptos:{
+    compras:[],
+    finanzas:[],
+    logistica:[],
+    gerencia:[],
+    destino:[]
+  }
+};
 let estadosAnteriores={};
 let ordenCorreosTemp=[];
 let linksFacturaTemp=[];
@@ -825,6 +839,7 @@ async function cargarDesdeSheets(silencioso=false){
       if(data.config){
         if(data.config.correos&&data.config.correos.length)config.correos=data.config.correos;
         if(data.config.proveedores&&data.config.proveedores.length)config.proveedores=data.config.proveedores;
+        if(data.config.deptos)config.deptos=data.config.deptos;
       }
       estadosAnteriores={};
       ordenes.forEach(o=>estadosAnteriores[o.id]=o.estado);
@@ -1245,7 +1260,19 @@ async function cambiarEstado(id,nuevoEstado){
   if(detalleId===id)verDetalle(id);
   renderDashboard();
   setStatus('loading','Guardando en Google Sheets...');
-  const todosCorreos=[...new Set([...(config.correos||[]),...(o.correos||[])])];
+  const d=config.deptos||{};
+  // Todos los correos base
+  const todosCorreos=[...new Set([...(config.correos||[]),...(o.correos||[]),...Object.values(d).flat()])];
+  // Correos especiales por estado
+  let correosEspeciales=[];
+  if(nuevoEstado==='Comprado'){
+    correosEspeciales=[...(d.logistica||[]),...(d.finanzas||[])];
+  } else if(nuevoEstado==='Enviado al destino'){
+    correosEspeciales=[...(d.destino||[])];
+  } else if(nuevoEstado==='Entregado'){
+    correosEspeciales=[...(d.finanzas||[]),...(d.gerencia||[])];
+  }
+  const correosFinales=[...new Set([...todosCorreos,...correosEspeciales])];
   const cambios=estadoAnterior!==nuevoEstado?[{
     ref:o.ref,prov:o.prov,dest:o.dest,doc:o.doc,tipo:o.tipo,merc:o.merc,eta:o.eta,etd:o.etd,
     factura:o.factura,facturaMan:o.facturaMan||'EUR',flete:o.flete,fleteMan:o.fleteMan||'EUR',
@@ -1254,9 +1281,10 @@ async function cambiarEstado(id,nuevoEstado){
     recibidoPor:nuevoEstado==='Entregado'?(usuarioActual||''):'',
     modificadoPor:nuevoEstado!=='Entregado'?(usuarioActual||''):'',
     linksFactura:o.linksFactura||[],
-    linksComprobante:o.linksComprobante||[]
+    linksComprobante:o.linksComprobante||[],
+    correosEspeciales:correosEspeciales
   }]:[];
-  await guardarEnSheets(cambios,todosCorreos);
+  await guardarEnSheets(cambios,correosFinales);
 }
 
 function renderMadrid(){
@@ -1430,7 +1458,7 @@ async function confirmarDel(){
   await guardarEnSheets([]);
 }
 
-function abrirConfig(){renderListaProveedores();renderListaCorreos();document.getElementById('config-modal').style.display='flex';}
+function abrirConfig(){renderListaProveedores();renderListaCorreos();renderListaDeptos();document.getElementById('config-modal').style.display='flex';}
 function cerrarConfig(){document.getElementById('config-modal').style.display='none';}
 
 function renderListaProveedores(){
@@ -1999,6 +2027,63 @@ function cerrarSesion(){
   document.getElementById('login-btn').textContent = 'Ingresar';
   document.getElementById('app-content').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+}
+
+
+// ── DEPARTAMENTOS ─────────────────────────────────────────────
+const DEPTOS_CONFIG = [
+  {key:'compras',    label:'Compras',              nota:'Notificado cuando se crea una orden (Comprado)'},
+  {key:'finanzas',   label:'Finanzas / Pagos',     nota:'Notificado cuando estado es Comprado o Entregado'},
+  {key:'logistica',  label:'Logística',            nota:'Notificado cuando estado es Comprado'},
+  {key:'gerencia',   label:'Gerencia',             nota:'Notificado cuando estado es Entregado'},
+  {key:'destino',    label:'Destino / Recepción',  nota:'Notificado cuando estado es Enviado al destino'},
+];
+
+function renderListaDeptos(){
+  const cont = document.getElementById('lista-deptos');
+  if(!cont) return;
+  cont.innerHTML = DEPTOS_CONFIG.map(d => `
+    <div style="margin-bottom:16px">
+      <p style="font-size:11px;font-weight:600;color:var(--c-white);margin-bottom:2px">${d.label}</p>
+      <p style="font-size:11px;color:var(--c-muted);margin-bottom:6px">${d.nota}</p>
+      <div id="depto-tags-${d.key}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+      <div style="display:flex;gap:6px">
+        <input type="email" id="depto-input-${d.key}" placeholder="correo@ejemplo.com" style="flex:1;font-size:12px;padding:6px 10px">
+        <button class="btn-primary" style="padding:6px 12px;font-size:12px;white-space:nowrap" onclick="agregarCorreoDepto('${d.key}')">+</button>
+      </div>
+    </div>
+  `).join('<hr class="divider">');
+  DEPTOS_CONFIG.forEach(d => renderTagsDepto(d.key));
+}
+
+function renderTagsDepto(key){
+  const cont = document.getElementById('depto-tags-'+key);
+  if(!cont) return;
+  const correos = (config.deptos && config.deptos[key]) || [];
+  cont.innerHTML = correos.map((c,i) => `
+    <span style="background:rgba(58,142,230,0.15);color:#6fb3f5;border:0.5px solid rgba(58,142,230,0.3);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:6px">
+      ${c}
+      <span onclick="eliminarCorreoDepto('${key}',${i})" style="cursor:pointer;opacity:0.6;font-size:13px">×</span>
+    </span>
+  `).join('');
+}
+
+function agregarCorreoDepto(key){
+  const input = document.getElementById('depto-input-'+key);
+  const val = input.value.trim().toLowerCase();
+  if(!val || !val.includes('@')){alert('Ingresa un correo válido');return;}
+  if(!config.deptos) config.deptos = {};
+  if(!config.deptos[key]) config.deptos[key] = [];
+  if(config.deptos[key].includes(val)){alert('Ese correo ya está en este departamento');return;}
+  config.deptos[key].push(val);
+  input.value = '';
+  renderTagsDepto(key);
+}
+
+function eliminarCorreoDepto(key, i){
+  if(!config.deptos || !config.deptos[key]) return;
+  config.deptos[key].splice(i,1);
+  renderTagsDepto(key);
 }
 
 // Restaurar sesión si existe
