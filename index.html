@@ -375,7 +375,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem">
     <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #888">
-      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">En evaluación</p>
+      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Cotizadas</p>
       <p id="pip-cnt-0" style="font-size:26px;font-weight:500;color:var(--c-text)">0</p>
     </div>
     <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #6fb3f5">
@@ -397,10 +397,8 @@ input:focus,select:focus{border-color:var(--c-orange)}
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
     <button onclick="filtrarPipeline('')" id="pip-fil-all" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px;background:var(--c-orange);color:#000;border-color:var(--c-orange)">Todos</button>
-    <button onclick="filtrarPipeline('En evaluación')" id="pip-fil-0" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">En evaluación</button>
-    <button onclick="filtrarPipeline('Cotizado')" id="pip-fil-1" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Cotizado</button>
+    <button onclick="filtrarPipeline('Cotizada')" id="pip-fil-1" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Cotizada</button>
     <button onclick="filtrarPipeline('Aprobado')" id="pip-fil-2" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Aprobado</button>
-    <button onclick="filtrarPipeline('Convertido')" id="pip-fil-3" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Convertido</button>
     <button onclick="filtrarPipeline('Rechazado')" id="pip-fil-4" class="btn-ghost" style="border-radius:20px;font-size:12px;padding:4px 14px">Rechazado</button>
   </div>
   <div class="panel" style="padding:0;overflow:hidden">
@@ -438,9 +436,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
         </select></div>
         <div class="form-group"><label>Estado</label>
           <select id="p-estado">
-            <option value="En evaluación">En evaluación</option>
-            <option value="Cotizado">Cotizado</option>
-            <option value="Aprobado">Aprobado</option>
+            <option value="Cotizada">Cotizada</option>
           </select>
         </div>
         <div class="form-group"><label>Destino</label>
@@ -475,7 +471,6 @@ input:focus,select:focus{border-color:var(--c-orange)}
       <div class="form-group" style="margin-bottom:1.5rem"><label>Justificación / Notas</label><textarea id="p-notas" rows="2" placeholder="¿Por qué se necesita? Prioridad, contexto, etc." style="resize:vertical"></textarea></div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button class="btn-ghost" onclick="cerrarFormPipeline()">Cancelar</button>
-        <button id="p-convertir-btn" class="btn-ghost" style="color:#5dca8a;border-color:rgba(46,204,113,0.3);display:none" onclick="convertirEnOrden()">→ Convertir en orden</button>
         <button class="btn-primary" onclick="guardarPipeline()">Guardar</button>
       </div>
     </div>
@@ -917,7 +912,7 @@ function renderDashboard(){
   const factUSD=ordenes.filter(o=>o.facturaMan==='USD').reduce((s,o)=>s+(o.factura||0),0);
 
   // Pipeline summary for dashboard
-  const pipPendientes=pipeline.filter(s=>s.estado==='En evaluación'||s.estado==='Cotizado').length;
+  const pipPendientes=pipeline.filter(s=>s.estado==='Cotizada').length;
   const pipAprobadas=pipeline.filter(s=>s.estado==='Aprobado').length;
   const pipRechazadas=pipeline.filter(s=>s.estado==='Rechazado').length;
 
@@ -936,7 +931,6 @@ function renderDashboard(){
       <p style="font-size:11px;color:var(--c-sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Solicitudes de compra</p>
       <div style="display:flex;gap:1rem;flex-wrap:wrap">
         ${pipPendientes>0?`<div><p style="font-size:22px;font-weight:500;color:var(--c-orange)">${pipPendientes}</p><p style="font-size:11px;color:var(--c-sub)">Pendientes de aprobación</p></div>`:''}
-        ${pipAprobadas>0?`<div><p style="font-size:22px;font-weight:500;color:#F5C800">${pipAprobadas}</p><p style="font-size:11px;color:var(--c-sub)">Aprobadas por convertir</p></div>`:''}
         ${pipRechazadas>0?`<div><p style="font-size:22px;font-weight:500;color:#e74c3c">${pipRechazadas}</p><p style="font-size:11px;color:var(--c-sub)">Rechazadas</p></div>`:''}
       </div>
     </div>`:''
@@ -1528,27 +1522,25 @@ function filtrarPipeline(estado){
     if(el){el.style.background='';el.style.color='';el.style.borderColor='';}
   });
   const actBtn=estado===''?document.getElementById('pip-fil-all'):
-    document.getElementById(`pip-fil-${['En evaluación','Cotizado','Aprobado','Convertido','Rechazado'].indexOf(estado)}`);
+    document.getElementById(`pip-fil-${['Cotizada','Aprobado','Rechazado'].indexOf(estado)}`);
   if(actBtn){actBtn.style.background='var(--c-orange)';actBtn.style.color='#000';actBtn.style.borderColor='var(--c-orange)';}
   renderPipeline();
 }
 
 const ESTADO_BADGE={
-  'En evaluación':'background:rgba(136,136,136,0.15);color:#aaa',
-  'Cotizado':'background:rgba(111,179,245,0.15);color:#6fb3f5',
+  'Cotizada':'background:rgba(111,179,245,0.15);color:#6fb3f5',
   'Aprobado':'background:rgba(245,200,0,0.15);color:#F5C800',
-  'Convertido':'background:rgba(93,202,138,0.15);color:#5dca8a',
   'Rechazado':'background:rgba(231,76,60,0.15);color:#e74c3c'
 };
 
 function renderPipeline(){
   // Update counters
-  ['En evaluación','Cotizado','Aprobado','Convertido','Rechazado'].forEach((e,i)=>{
+  ['Cotizada','Aprobado','Rechazado'].forEach((e,i)=>{
     const el=document.getElementById(`pip-cnt-${i}`);
     if(el)el.textContent=pipeline.filter(s=>s.estado===e).length;
   });
   // Filter
-  const lista=pipFiltro?pipeline.filter(s=>s.estado===pipFiltro):pipeline.filter(s=>s.estado!=='Convertido');
+  const lista=pipFiltro?pipeline.filter(s=>s.estado===pipFiltro):pipeline.filter(s=>s.estado!=='Rechazado'||pipFiltro==='Rechazado');
   const tbody=document.getElementById('pipeline-tbody');
   const empty=document.getElementById('pipeline-empty');
   if(!tbody)return;
@@ -1568,7 +1560,7 @@ function renderPipeline(){
       <td style="padding:12px 14px;font-size:12px;color:var(--c-sub)">${s.fecha?s.fecha.substring(0,10).split('-').reverse().join('-'):'—'}</td>
       <td style="padding:12px 14px;white-space:nowrap" onclick="event.stopPropagation()">
         <button onclick="verSolicitud('${s.id}')" style="font-size:11px;padding:5px 12px;border-radius:6px;border:0.5px solid var(--c-orange);background:transparent;cursor:pointer;color:var(--c-orange);margin-right:4px">Ver</button>
-        ${s.estado!=='Aprobado'&&s.estado!=='Convertido'?`<button onclick="eliminarPipeline('${s.id}')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:0.5px solid rgba(231,76,60,0.5);background:transparent;cursor:pointer;color:#e74c3c">Borrar</button>`:''}
+        ${s.estado==='Cotizada'||s.estado==='Rechazado'?`<button onclick="eliminarPipeline('${s.id}')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:0.5px solid rgba(231,76,60,0.5);background:transparent;cursor:pointer;color:#e74c3c">Borrar</button>`:''}
         ${s.estado==='Aprobado'?`<button onclick="verSolicitud('${s.id}')" style="font-size:11px;padding:5px 12px;border-radius:6px;border:none;background:#F5C800;color:#000;cursor:pointer;font-weight:500">Convertir</button>`:''}
       </td>
     </tr>`).join('');
@@ -1576,9 +1568,9 @@ function renderPipeline(){
 function verSolicitud(id){
   const s=pipeline.find(x=>x.id===id);
   if(!s)return;
-  const aprobada=s.estado==='Aprobado'||s.estado==='Convertido';
+  const aprobada=s.estado==='Aprobado';
   const aprobadores=['Ronney','Raymond','Eugenia'];
-  const puedeAprobar=aprobadores.includes(usuarioActual)&&(s.estado==='En evaluación'||s.estado==='Cotizado');
+  const puedeAprobar=aprobadores.includes(usuarioActual)&&s.estado==='Cotizada';
   document.getElementById('pipeline-ver-contenido').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
       <div><p style="font-size:10px;color:var(--c-muted);text-transform:uppercase;margin-bottom:3px">Proveedor</p><p style="font-size:14px;font-weight:500;color:var(--c-orange)">${s.prov||'—'}</p></div>
@@ -1604,7 +1596,7 @@ function verSolicitud(id){
   btnCerrar.className='btn-ghost';btnCerrar.textContent='Cerrar';
   btnCerrar.onclick=cerrarVerPipeline;
   acciones.appendChild(btnCerrar);
-  if(!aprobada&&s.estado!=='Convertido'){
+  if(!aprobada){
     const btnEditar=document.createElement('button');
     btnEditar.className='btn-ghost';btnEditar.textContent='✏️ Editar';
     btnEditar.onclick=()=>{cerrarVerPipeline();abrirFormPipeline(id);};
@@ -1684,7 +1676,7 @@ function abrirFormPipeline(id){
     const s=pipeline.find(x=>x.id===id);
     if(s){
       sel.value=s.prov||'';
-      document.getElementById('p-estado').value=s.estado||'En evaluación';
+      document.getElementById('p-estado').value=s.estado||'Cotizada';
       document.getElementById('p-producto').value=s.producto||'';
       document.getElementById('p-dest').value=s.dest||'Venezuela';
       document.getElementById('p-tipo').value=s.tipo||'Aérea';
@@ -1699,7 +1691,7 @@ function abrirFormPipeline(id){
     }
   } else {
     sel.selectedIndex=0;
-    document.getElementById('p-estado').value='En evaluación';
+    document.getElementById('p-estado').value='Cotizada';
     ['p-producto','p-notas','p-link-doc','p-num-doc','p-link-pago'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('p-pago-estado').value='Pendiente';
     document.getElementById('p-presupuesto').value='0';
@@ -1740,7 +1732,7 @@ function guardarPipeline(){
   const d={
     id:editPipelineId||('pip-'+Date.now()),
     prov:document.getElementById('p-prov').value,
-    estado:editPipelineId?existing.estado:document.getElementById('p-estado').value,
+    estado:editPipelineId?existing.estado:'Cotizada',
     producto,
     dest:document.getElementById('p-dest').value,
     tipo:document.getElementById('p-tipo').value,
@@ -1791,7 +1783,7 @@ function convertirEnOrden(id){
   const s=pipeline.find(x=>x.id===sid);
   if(!s)return;
   cerrarVerPipeline();
-  s.estado='Convertido';renderPipeline();guardarPipelineEnSheets();
+  pipeline=pipeline.filter(x=>x.id!==sid);renderPipeline();guardarPipelineEnSheets();
   abrirForm(null);
   setTimeout(()=>{
     document.getElementById('i-prov').value=s.prov||'';
@@ -1913,7 +1905,7 @@ async function archivarEntregadas(){
 }
 
 function renderPipelineHistorial(){
-  const lista=pipeline.filter(s=>s.estado==='Convertido'||s.estado==='Rechazado');
+  const lista=pipeline.filter(s=>s.estado==='Rechazado');
   const tbody=document.getElementById('pip-hist-tbody');
   const empty=document.getElementById('pip-hist-empty');
   const count=document.getElementById('pip-hist-count');
@@ -1922,8 +1914,8 @@ function renderPipelineHistorial(){
   if(!lista.length){tbody.innerHTML='';if(empty)empty.style.display='block';return;}
   if(empty)empty.style.display='none';
   tbody.innerHTML=lista.map(s=>{
-    const badgeStyle=s.estado==='Convertido'?'background:rgba(93,202,138,0.15);color:#5dca8a':'background:rgba(231,76,60,0.15);color:#e74c3c';
-    const detalle=s.estado==='Convertido'?(s.aprobadoPor?'Aprobado por '+s.aprobadoPor:'—'):(s.motivoRechazo?s.motivoRechazo.substring(0,40):'—');
+    const badgeStyle='background:rgba(231,76,60,0.15);color:#e74c3c';
+    const detalle=s.motivoRechazo?s.motivoRechazo.substring(0,40):'—';
     const producto=(s.producto||'—').substring(0,45)+((s.producto||'').length>45?'...':'');
     return `<tr style="border-bottom:0.5px solid var(--c-border);cursor:pointer" onclick="verSolicitud('${s.id}')">
       <td style="padding:10px 14px;font-size:12px;color:var(--c-text)">${producto}</td>
