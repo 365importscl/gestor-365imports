@@ -373,26 +373,18 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <button class="btn-primary" onclick="abrirFormPipeline(null)">+ Nueva solicitud</button>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem">
-    <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #888">
-      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Cotizadas</p>
-      <p id="pip-cnt-0" style="font-size:26px;font-weight:500;color:var(--c-text)">0</p>
-    </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem">
     <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #6fb3f5">
       <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Cotizadas</p>
-      <p id="pip-cnt-1" style="font-size:26px;font-weight:500;color:#6fb3f5">0</p>
+      <p id="pip-cnt-cotizada" style="font-size:26px;font-weight:500;color:#6fb3f5">0</p>
     </div>
     <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #F5C800">
       <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Aprobadas</p>
-      <p id="pip-cnt-2" style="font-size:26px;font-weight:500;color:#F5C800">0</p>
-    </div>
-    <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #5dca8a">
-      <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Convertidas</p>
-      <p id="pip-cnt-3" style="font-size:26px;font-weight:500;color:#5dca8a">0</p>
+      <p id="pip-cnt-aprobada" style="font-size:26px;font-weight:500;color:#F5C800">0</p>
     </div>
     <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:14px;border-left:3px solid #e74c3c">
       <p style="font-size:11px;color:var(--c-sub);margin-bottom:4px">Rechazadas</p>
-      <p id="pip-cnt-4" style="font-size:26px;font-weight:500;color:#e74c3c">0</p>
+      <p id="pip-cnt-rechazada" style="font-size:26px;font-weight:500;color:#e74c3c">0</p>
     </div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
@@ -1517,7 +1509,7 @@ let pipFiltro='';
 function filtrarPipeline(estado){
   pipFiltro=estado;
   // Update filter buttons
-  ['pip-fil-all','pip-fil-0','pip-fil-1','pip-fil-2','pip-fil-3'].forEach(id=>{
+  ['pip-fil-all','pip-fil-1','pip-fil-2','pip-fil-4'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){el.style.background='';el.style.color='';el.style.borderColor='';}
   });
