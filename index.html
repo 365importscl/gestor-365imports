@@ -1426,12 +1426,22 @@ async function guardar(){
     pagoFlete:document.getElementById('i-pago-flete').value,
     peso:parseFloat(document.getElementById('i-peso').value)||0};
   let cambios=[];
-  const todosCorreos=[...new Set([...(config.correos||[]),...(d.correos||[])])];
+  const dep=config.deptos||{};
+  const todosCorreos=[...new Set([...(config.correos||[]),...(d.correos||[]),...Object.values(dep).flat()])];
   if(editId){
     const i=ordenes.findIndex(x=>x.id===editId);
     if(i>=0){
       const estadoAnterior=estadosAnteriores[editId]||ordenes[i].estado;
-      if(estadoAnterior!==d.estado)cambios=[{ref:d.ref,prov:d.prov,dest:d.dest,doc:d.doc,tipo:d.tipo,merc:d.merc,eta:d.eta,etd:d.etd,factura:d.factura,facturaMan:d.facturaMan,flete:d.flete,fleteMan:d.fleteMan,aduana:d.aduana,aduanaMan:d.aduanaMan,otros:d.otros,otrosMan:d.otrosMan,estadoAnterior,estadoNuevo:d.estado}];
+      if(estadoAnterior!==d.estado)cambios=[{
+        ref:d.ref,prov:d.prov,dest:d.dest,doc:d.doc,tipo:d.tipo,merc:d.merc,eta:d.eta,etd:d.etd,
+        factura:d.factura,facturaMan:d.facturaMan,flete:d.flete,fleteMan:d.fleteMan,
+        aduana:d.aduana,aduanaMan:d.aduanaMan,otros:d.otros,otrosMan:d.otrosMan,
+        estadoAnterior,estadoNuevo:d.estado,
+        recibidoPor:d.estado==='Entregado'?(usuarioActual||''):'',
+        modificadoPor:d.estado!=='Entregado'?(usuarioActual||''):'',
+        linksFactura:d.linksFactura||[],
+        linksComprobante:d.linksComprobante||[]
+      }];
       ordenes[i]={...ordenes[i],...d};estadosAnteriores[editId]=d.estado;
     }
   }else{const newId=nid++;ordenes.unshift({id:newId,...d});estadosAnteriores[newId]=d.estado;}
