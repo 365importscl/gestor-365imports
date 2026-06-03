@@ -163,6 +163,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
   <button class="tab-btn" onclick="cambiarTab('pipeline',this)">🛒 Solicitud de Compra</button>
   <button class="tab-btn" onclick="cambiarTab('ordenes',this)">Todas las órdenes</button>
   <button class="tab-btn" onclick="cambiarTab('historial',this)">📋 Historial</button>
+  <button class="tab-btn" onclick="cambiarTab('proveedores',this)">🏭 Proveedores</button>
 </div>
 
 <!-- ═══════════════ DASHBOARD ═══════════════ -->
@@ -363,6 +364,87 @@ input:focus,select:focus{border-color:var(--c-orange)}
   <!-- RESUMEN -->
   <div id="historial-resumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:1rem"></div>
 </div>
+
+<!-- ═══════════════ PROVEEDORES ═══════════════ -->
+<div id="tab-proveedores" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
+    <div>
+      <p style="font-size:15px;font-weight:600;color:var(--c-text);margin:0">Decisiones Logísticas</p>
+      <p style="font-size:12px;color:var(--c-muted);margin:4px 0 0">Historial de decisiones por proveedor y recomendaciones automáticas.</p>
+    </div>
+    <button class="btn-primary" onclick="abrirFormDecision()">+ Nueva decisión</button>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center">
+    <select id="prov-filter" onchange="renderDecisiones()" style="min-width:200px;font-size:13px;background:var(--c-card);color:var(--c-text);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:6px 10px">
+      <option value="">Todos los proveedores</option>
+    </select>
+    <select id="decision-filter" onchange="renderDecisiones()" style="min-width:180px;font-size:13px;background:var(--c-card);color:var(--c-text);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:6px 10px">
+      <option value="">Todas las decisiones</option>
+      <option value="proveedor">Proveedor envía</option>
+      <option value="nosotros">Nosotros coordinamos</option>
+    </select>
+  </div>
+  <div id="prov-recomendacion" style="margin-bottom:1.25rem"></div>
+  <div class="panel" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--c-border)">
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Proveedor</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Fecha</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Decisión</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Courier</th>
+            <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Costo</th>
+            <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Días</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Decidido por</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Notas</th>
+            <th style="padding:10px 12px"></th>
+          </tr>
+        </thead>
+        <tbody id="prov-tabla-body"></tbody>
+      </table>
+    </div>
+    <p id="prov-empty" style="text-align:center;padding:2.5rem;font-size:13px;color:var(--c-muted)">Sin decisiones registradas aún. Agrega la primera con "+ Nueva decisión".</p>
+  </div>
+</div>
+
+<!-- Modal nueva decisión -->
+<div id="decision-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:12px;padding:28px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;margin:1rem">
+    <p id="decision-modal-title" style="font-size:15px;font-weight:600;color:var(--c-text);margin:0 0 20px">Nueva Decisión Logística</p>
+    <div class="form-row">
+      <div class="form-group"><label>Proveedor</label><select id="d-prov" style="width:100%"></select></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="d-fecha"></div>
+    </div>
+    <div class="form-group"><label>Decisión</label>
+      <select id="d-decision">
+        <option value="proveedor">Proveedor envía</option>
+        <option value="nosotros">Nosotros coordinamos</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Courier usado</label><input type="text" id="d-courier" placeholder="FedEx, DHL, MBE..."></div>
+      <div class="form-group"><label>Costo logístico</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="d-costo" placeholder="0.00" style="flex:1">
+          <select id="d-costo-mon" style="width:80px"><option value="EUR">EUR</option><option value="USD">USD</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Días de tránsito reales</label><input type="number" id="d-dias" placeholder="0" min="0"></div>
+      <div class="form-group"><label>Decidido por</label><input type="text" id="d-decidido" placeholder="Nombre"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:1.5rem"><label>Notas</label>
+      <textarea id="d-notas" rows="2" placeholder="¿Por qué se tomó esta decisión?" style="resize:vertical"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn-ghost" onclick="cerrarFormDecision()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarDecision()">Guardar decisión</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ═══════════════ SOLICITUD DE COMPRA ═══════════════ -->
 <div id="tab-pipeline" style="display:none">
@@ -2150,6 +2232,193 @@ function eliminarCorreoDepto(key, i){
   renderTagsDepto(key);
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO DECISIONES LOGÍSTICAS
+// ══════════════════════════════════════════════════════════════
+let decisiones = [];
+let editDecisionId = null;
+
+async function cargarDecisiones() {
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=decisiones&t=' + Date.now());
+    const data = await res.json();
+    if (data.decisiones) {
+      decisiones = data.decisiones;
+      poblarFiltroProveedores();
+      renderDecisiones();
+    }
+  } catch(e) { console.log('Error cargando decisiones:', e); }
+}
+
+function poblarFiltroProveedores() {
+  const sel = document.getElementById('prov-filter');
+  if (!sel) return;
+  const provs = [...new Set([...decisiones.map(d => d.prov), ...config.proveedores].filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todos los proveedores</option>' +
+    provs.map(p => `<option value="${p}">${p}</option>`).join('');
+}
+
+function renderDecisiones() {
+  const filtProv = document.getElementById('prov-filter')?.value || '';
+  const filtDec  = document.getElementById('decision-filter')?.value || '';
+  const tbody    = document.getElementById('prov-tabla-body');
+  const empty    = document.getElementById('prov-empty');
+  if (!tbody) return;
+  let lista = [...decisiones];
+  if (filtProv) lista = lista.filter(d => d.prov === filtProv);
+  if (filtDec)  lista = lista.filter(d => d.decision === filtDec);
+  lista.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  if (lista.length === 0) {
+    tbody.innerHTML = '';
+    if(empty) empty.style.display = 'block';
+    renderRecomendacion(filtProv);
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+  const fmt = n => Number(n||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  tbody.innerHTML = lista.map(d => {
+    const badgeColor = d.decision === 'nosotros'
+      ? 'background:rgba(93,202,138,0.15);color:#5dca8a'
+      : 'background:rgba(111,179,245,0.15);color:#6fb3f5';
+    const badgeLabel = d.decision === 'nosotros' ? 'Nosotros' : 'Proveedor';
+    const mon = d.costoMon === 'USD' ? '$' : '€';
+    return `<tr style="border-bottom:0.5px solid var(--c-border)">
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text);font-weight:500">${d.prov||'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-muted)">${d.fecha||'—'}</td>
+      <td style="padding:10px 12px"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;${badgeColor}">${badgeLabel}</span></td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text)">${d.courier||'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text);text-align:right">${d.costo?mon+fmt(d.costo):'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text);text-align:right">${d.dias?d.dias+'d':'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-muted)">${d.decididoPor||'—'}</td>
+      <td style="padding:10px 12px;font-size:12px;color:var(--c-muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.notas||''}">${d.notas||'—'}</td>
+      <td style="padding:10px 12px;white-space:nowrap">
+        <button class="btn-edit" onclick="editarDecision('${d.id}')">✏️</button>
+        <button class="btn-del" onclick="eliminarDecision('${d.id}')">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+  renderRecomendacion(filtProv);
+}
+
+function renderRecomendacion(prov) {
+  const cont = document.getElementById('prov-recomendacion');
+  if (!cont) return;
+  if (!prov) { cont.innerHTML = ''; return; }
+  const hist = decisiones.filter(d => d.prov === prov);
+  if (hist.length < 2) { cont.innerHTML = ''; return; }
+  const porProv = hist.filter(d => d.decision === 'proveedor');
+  const porNos  = hist.filter(d => d.decision === 'nosotros');
+  const avg = arr => arr.length ? arr.reduce((s,d)=>s+(parseFloat(d)||0),0)/arr.length : null;
+  const avgCostoProv = avg(porProv.map(d=>d.costo));
+  const avgCostoNos  = avg(porNos.map(d=>d.costo));
+  const avgDiasProv  = avg(porProv.filter(d=>d.dias).map(d=>d.dias));
+  const avgDiasNos   = avg(porNos.filter(d=>d.dias).map(d=>d.dias));
+  let recomendacion = '', color = '#F5C800', icono = '📊';
+  if (avgCostoProv !== null && avgCostoNos !== null) {
+    const difCosto = avgCostoProv - avgCostoNos;
+    const difDias  = avgDiasProv !== null && avgDiasNos !== null ? avgDiasProv - avgDiasNos : null;
+    if (difCosto > 0 && (difDias === null || difDias >= 0)) {
+      recomendacion = `Conviene que <strong>nosotros coordinemos</strong> — promedio €${Math.abs(difCosto).toFixed(0)} más barato${difDias !== null ? ` y ${Math.abs(difDias).toFixed(0)} días más rápido` : ''}.`;
+      color = '#5dca8a'; icono = '✅';
+    } else if (difCosto < 0 && (difDias === null || difDias <= 0)) {
+      recomendacion = `Conviene que el <strong>proveedor envíe</strong> — promedio €${Math.abs(difCosto).toFixed(0)} más barato${difDias !== null ? ` y ${Math.abs(difDias).toFixed(0)} días más rápido` : ''}.`;
+      color = '#6fb3f5'; icono = '✅';
+    } else {
+      recomendacion = `No hay una opción claramente mejor con <strong>${prov}</strong> — revisa el historial.`;
+      color = '#F5C800'; icono = '⚖️';
+    }
+  } else {
+    recomendacion = `Agrega más decisiones para obtener una recomendación automática con <strong>${prov}</strong>.`;
+    color = '#888'; icono = '📊';
+  }
+  const fmtN = n => n !== null ? '€' + Number(n).toFixed(0) : '—';
+  const fmtD = n => n !== null ? Math.round(n) + 'd' : '—';
+  cont.innerHTML = `<div style="background:var(--c-card);border:0.5px solid ${color};border-left:4px solid ${color};border-radius:var(--rad);padding:16px 20px">
+    <p style="margin:0 0 8px;font-size:13px;color:var(--c-text)">${icono} <strong>Recomendación para ${prov}:</strong> ${recomendacion}</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      ${porProv.length ? `<span style="font-size:12px;color:var(--c-muted)"><strong style="color:#6fb3f5">Proveedor envía</strong> (${porProv.length}x) — Costo: ${fmtN(avgCostoProv)} · Días: ${fmtD(avgDiasProv)}</span>` : ''}
+      ${porNos.length ? `<span style="font-size:12px;color:var(--c-muted)"><strong style="color:#5dca8a">Nosotros coordinamos</strong> (${porNos.length}x) — Costo: ${fmtN(avgCostoNos)} · Días: ${fmtD(avgDiasNos)}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function abrirFormDecision() {
+  editDecisionId = null;
+  document.getElementById('decision-modal-title').textContent = 'Nueva Decisión Logística';
+  document.getElementById('d-prov').innerHTML = config.proveedores.map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('d-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('d-decision').value = 'proveedor';
+  document.getElementById('d-courier').value = '';
+  document.getElementById('d-costo').value = '';
+  document.getElementById('d-costo-mon').value = 'EUR';
+  document.getElementById('d-dias').value = '';
+  document.getElementById('d-decidido').value = usuarioActual || '';
+  document.getElementById('d-notas').value = '';
+  document.getElementById('decision-modal').style.display = 'flex';
+}
+
+function editarDecision(id) {
+  const d = decisiones.find(x => x.id === id);
+  if (!d) return;
+  editDecisionId = id;
+  document.getElementById('decision-modal-title').textContent = 'Editar Decisión';
+  document.getElementById('d-prov').innerHTML = config.proveedores.map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('d-prov').value = d.prov || '';
+  document.getElementById('d-fecha').value = d.fecha || '';
+  document.getElementById('d-decision').value = d.decision || 'proveedor';
+  document.getElementById('d-courier').value = d.courier || '';
+  document.getElementById('d-costo').value = d.costo || '';
+  document.getElementById('d-costo-mon').value = d.costoMon || 'EUR';
+  document.getElementById('d-dias').value = d.dias || '';
+  document.getElementById('d-decidido').value = d.decididoPor || '';
+  document.getElementById('d-notas').value = d.notas || '';
+  document.getElementById('decision-modal').style.display = 'flex';
+}
+
+function cerrarFormDecision() {
+  document.getElementById('decision-modal').style.display = 'none';
+}
+
+async function guardarDecision() {
+  const prov = document.getElementById('d-prov').value;
+  if (!prov) { alert('Selecciona un proveedor'); return; }
+  const d = {
+    id: editDecisionId || ('dec-' + Date.now()),
+    prov,
+    fecha:       document.getElementById('d-fecha').value,
+    decision:    document.getElementById('d-decision').value,
+    courier:     document.getElementById('d-courier').value.trim(),
+    costo:       parseFloat(document.getElementById('d-costo').value) || 0,
+    costoMon:    document.getElementById('d-costo-mon').value,
+    dias:        parseInt(document.getElementById('d-dias').value) || 0,
+    decididoPor: document.getElementById('d-decidido').value.trim(),
+    notas:       document.getElementById('d-notas').value.trim(),
+  };
+  if (editDecisionId) {
+    const i = decisiones.findIndex(x => x.id === editDecisionId);
+    if (i >= 0) decisiones[i] = d;
+  } else {
+    decisiones.unshift(d);
+  }
+  cerrarFormDecision();
+  poblarFiltroProveedores();
+  renderDecisiones();
+  await guardarDecisionesEnSheets();
+}
+
+function eliminarDecision(id) {
+  if (!confirm('¿Eliminar esta decisión?')) return;
+  decisiones = decisiones.filter(x => x.id !== id);
+  poblarFiltroProveedores();
+  renderDecisiones();
+  guardarDecisionesEnSheets();
+}
+
+async function guardarDecisionesEnSheets() {
+  await postAGAS({ action: 'save_decisiones', decisiones });
+}
+
 // Restaurar sesión si existe
 (function(){
   const usr = sessionStorage.getItem('usr');
@@ -2159,6 +2428,7 @@ function eliminarCorreoDepto(key, i){
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-content').style.display = 'block';
     cargarDesdeSheets();
+    cargarDecisiones();
     iniciarAutoSync();
   }
 })();
