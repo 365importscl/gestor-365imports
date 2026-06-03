@@ -822,6 +822,7 @@ async function cargarDesdeSheets(silencioso=false){
         merc:String(row.merc||'').trim(),
         linksFactura:String(row.linksFactura||'').split('|').map(s=>s.trim()).filter(Boolean),
         linksComprobante:String(row.linksComprobante||'').split('|').map(s=>s.trim()).filter(Boolean),
+        fechaCreacion:row.fechaCreacion||'',
         factura:parseFloat(row.factura)||0,facturaMan:String(row.facturaMan||'EUR'),
         flete:parseFloat(row.flete)||0,fleteMan:String(row.fleteMan||'EUR'),
         aduana:parseFloat(row.aduana)||0,aduanaMan:String(row.aduanaMan||'EUR'),
@@ -1161,6 +1162,7 @@ function verDetalle(id){
         const hoy=new Date();hoy.setHours(0,0,0,0);
         const eta=new Date(o.eta);eta.setHours(0,0,0,0);
         const dias=Math.round((eta-hoy)/(1000*60*60*24));
+      const diasCreacion=o.fechaCreacion&&o.estado!=='Entregado'?Math.round((hoy-new Date(o.fechaCreacion))/(1000*60*60*24)):null;
         const color=dias<0?'#e74c3c':dias<=3?'#f09040':'#5dca8a';
         const texto=dias<0?`Llegada hace ${Math.abs(dias)} día(s)`:dias===0?'🎯 Llega hoy':`📦 Faltan ${dias} día(s) para la llegada`;
         return`<div style="margin-bottom:1rem;text-align:center;padding:10px 14px;background:${color}18;border-radius:var(--rad);border:0.5px solid ${color}44">
@@ -1381,6 +1383,7 @@ function abrirForm(id){
     document.getElementById('i-notas').value=o.notas||'';
     ordenCorreosTemp=[...(o.correos||[])];
   }else{
+    window._pipSolicitudId=null;
     ['i-ref','i-doc','i-merc','i-notas','i-correo-orden','i-carrier-url-custom','i-link-factura','i-link-comprobante'].forEach(x=>document.getElementById(x).value='');
     linksFacturaTemp=[];
     linksComprobanteTemp=[];
@@ -1413,6 +1416,7 @@ async function guardar(){
     merc:document.getElementById('i-merc').value.trim(),
     linksFactura:[...linksFacturaTemp],
     linksComprobante:[...linksComprobanteTemp],
+    fechaCreacion:new Date().toISOString().slice(0,10),
     factura:parseFloat(document.getElementById('i-factura').value)||0,facturaMan:document.getElementById('i-factura-mon').value,
     flete:parseFloat(document.getElementById('i-flete').value)||0,fleteMan:document.getElementById('i-flete-mon').value,
     aduana:parseFloat(document.getElementById('i-aduana').value)||0,aduanaMan:document.getElementById('i-aduana-mon').value,
@@ -1537,10 +1541,12 @@ const ESTADO_BADGE={
 
 function renderPipeline(){
   // Update counters
-  ['Cotizada','Aprobado','Rechazado'].forEach((e,i)=>{
-    const el=document.getElementById(`pip-cnt-${i}`);
-    if(el)el.textContent=pipeline.filter(s=>s.estado===e).length;
-  });
+  const elCot=document.getElementById('pip-cnt-cotizada');
+  const elApr=document.getElementById('pip-cnt-aprobada');
+  const elRec=document.getElementById('pip-cnt-rechazada');
+  if(elCot)elCot.textContent=pipeline.filter(s=>s.estado==='Cotizada').length;
+  if(elApr)elApr.textContent=pipeline.filter(s=>s.estado==='Aprobado').length;
+  if(elRec)elRec.textContent=pipeline.filter(s=>s.estado==='Rechazado').length;
   // Filter
   const lista=pipFiltro?pipeline.filter(s=>s.estado===pipFiltro):pipeline.filter(s=>s.estado!=='Rechazado'||pipFiltro==='Rechazado');
   const tbody=document.getElementById('pipeline-tbody');
@@ -1617,8 +1623,22 @@ function verSolicitud(id){
   }
   if(s.estado==='Aprobado'){
     const btnConvertir=document.createElement('button');
-    btnConvertir.className='btn-primary';btnConvertir.textContent='→ Convertir en orden';
-    btnConvertir.onclick=()=>{cerrarVerPipeline();convertirEnOrden(id);};
+    btnConvertir.className='btn-primary';btnConvertir.textContent='📦 Crear orden';
+    btnConvertir.onclick=()=>{
+      cerrarVerPipeline();
+      window._pipSolicitudId=id;
+      abrirForm(null);
+      setTimeout(()=>{
+        const sol=pipeline.find(x=>x.id===id);
+        if(!sol)return;
+        if(document.getElementById('i-prov'))document.getElementById('i-prov').value=sol.prov||'';
+        if(document.getElementById('i-dest'))document.getElementById('i-dest').value=sol.dest||'Venezuela';
+        if(document.getElementById('i-tipo'))document.getElementById('i-tipo').value=sol.tipo||'Aérea';
+        if(document.getElementById('i-merc'))document.getElementById('i-merc').value=sol.producto||'';
+        if(sol.linkDoc){linksFacturaTemp=[sol.linkDoc];renderLinksFacturaTags();}
+        if(sol.linkPago){linksComprobanteTemp=[sol.linkPago];renderLinksComprobanteTags();}
+      },150);
+    };
     acciones.appendChild(btnConvertir);
   }
   document.getElementById('pipeline-ver-modal').style.display='flex';
@@ -1837,7 +1857,11 @@ async function cargarHistorial(){
     const res=await fetch(SCRIPT_URL+'?action=historial&t='+Date.now());
     const data=await res.json();
     if(data.historial){
-      historial=data.historial;
+      historial=(data.historial||[]).map(o=>({
+        ...o,
+        linksFactura:o.linksFactura?String(o.linksFactura).split('|').map(s=>s.trim()).filter(Boolean):[],
+        linksComprobante:o.linksComprobante?String(o.linksComprobante).split('|').map(s=>s.trim()).filter(Boolean):[]
+      }));
       poblarFiltroProvHistorial();
       renderHistorial();
     }
@@ -1944,7 +1968,7 @@ function exportarPipelineCSV(){
 function exportarHistorialCSV(){
   if(!historial.length){alert('No hay datos en el historial.');return;}
   const cols=['Ref','Proveedor','Tipo','Destino','Estado','Mercancía','Factura','Mon.Factura','Flete','Mon.Flete','Aduana','Mon.Aduana','Otros','Mon.Otros','ETD','ETA','Notas','Links Facturas','Links Comprobantes','Fecha archivo'];
-  const rows=historial.map(o=>[o.ref,o.prov,o.tipo,o.dest,o.estado,o.merc||'',o.factura,o.facturaMan||'EUR',o.flete,o.fleteMan||'EUR',o.aduana,o.aduanaMan||'EUR',o.otros,o.otrosMan||'EUR',o.etd,o.eta,o.notas,(o.linksFactura||[]).join(' | '),(o.linksComprobante||[]).join(' | '),o.fecha_archivo].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','));
+  const rows=historial.map(o=>[o.ref,o.prov,o.tipo,o.dest,o.estado,o.merc||'',o.factura,o.facturaMan||'EUR',o.flete,o.fleteMan||'EUR',o.aduana,o.aduanaMan||'EUR',o.otros,o.otrosMan||'EUR',o.etd,o.eta,o.notas,(Array.isArray(o.linksFactura)?o.linksFactura.join(' | '):(o.linksFactura||'')),(Array.isArray(o.linksComprobante)?o.linksComprobante.join(' | '):(o.linksComprobante||'')),o.fecha_archivo].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','));
   const csv=[cols.join(','),...rows].join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
   a.download='365imports_historial.csv';a.click();
@@ -1962,8 +1986,8 @@ function exportarHistorialExcel(){
     <td>${o.aduana||0}</td><td>${o.aduanaMan||'EUR'}</td>
     <td>${o.otros||0}</td><td>${o.otrosMan||'EUR'}</td>
     <td>${o.etd||''}</td><td>${o.eta||''}</td><td>${o.notas||''}</td>
-    <td>${(o.linksFactura||[]).join(' | ')}</td>
-    <td>${(o.linksComprobante||[]).join(' | ')}</td>
+    <td>${Array.isArray(o.linksFactura)?o.linksFactura.join(' | '):(o.linksFactura||'')}</td>
+    <td>${Array.isArray(o.linksComprobante)?o.linksComprobante.join(' | '):(o.linksComprobante||'')}</td>
     <td>${o.fecha_archivo||''}</td>
   </tr>`).join('');
   const tabla=`<html><head><meta charset="UTF-8"></head><body><table border="1">
