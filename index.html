@@ -1449,6 +1449,12 @@ async function guardar(){
       ordenes[i]={...ordenes[i],...d};estadosAnteriores[editId]=d.estado;
     }
   }else{const newId=nid++;ordenes.unshift({id:newId,...d});estadosAnteriores[newId]=d.estado;}
+  // Si viene de solicitud aprobada, eliminarla del pipeline
+  if(window._pipSolicitudId){
+    pipeline=pipeline.filter(x=>x.id!==window._pipSolicitudId);
+    window._pipSolicitudId=null;
+    await guardarPipelineEnSheets();
+  }
   cerrarForm();renderTodo();
   setStatus('loading','Guardando en Google Sheets...');
   await guardarEnSheets(cambios,todosCorreos);
