@@ -35,6 +35,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
 .b-maritima{background:rgba(46,204,113,0.15);color:#5dca8a}
 .b-venezuela{background:rgba(245,200,0,0.2);color:#F5C800}
 .b-chile{background:rgba(180,120,240,0.2);color:#c990f0}
+.b-madrid{background:rgba(46,204,113,0.2);color:#2ecc71}
 .btn-primary{background:var(--c-orange);color:#0A0A0A;border:none;border-radius:var(--rad);padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer}
 .btn-primary:hover{background:var(--c-orange-light)}
 .btn-ghost{background:transparent;color:var(--c-muted);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:7px 14px;font-size:12px;cursor:pointer}
@@ -1288,7 +1289,7 @@ function renderDashboard(){
           return`<tr>
             <td style="padding:9px 8px;font-weight:500;color:var(--c-orange)">${o.ref}</td>
             <td style="padding:9px 8px;color:var(--c-muted)">${o.prov}</td>
-            <td style="padding:9px 8px"><span class="badge ${o.dest==='Venezuela'?'b-venezuela':'b-chile'}">${o.dest}</span></td>
+            <td style="padding:9px 8px"><span class="badge ${o.dest==='Venezuela'?'b-venezuela':o.dest==='Madrid'?'b-madrid':'b-chile'}">${o.dest}</span></td>
             <td style="padding:9px 8px"><span class="estado-pill ${ESTADO_EP[ei>=0?ei:0]}">${o.estado}</span></td>
             <td style="padding:9px 8px;text-align:right;font-weight:500">${fmtMon(o.factura||0,o.facturaMan||'EUR')}</td>          </tr>`;
         }).join('')}
@@ -1301,10 +1302,14 @@ function renderDashboard(){
 // TABLA ÓRDENES
 // ══════════════════════════════════════════
 function renderTabla(){
+  renderSeccionMadrid();
   const fd=document.getElementById('f-dest-fil').value;
   const ft=document.getElementById('f-tipo-fil').value;
   const fe=document.getElementById('f-est-fil').value;
-  const list=ordenes.filter(o=>(!fd||o.dest===fd)&&(!ft||o.tipo===ft)&&(!fe||o.estado===fe));
+  const list=ordenes.filter(o=>{
+    if(o.dest==='Madrid'&&o.estado==='Entregado')return false;
+    return(!fd||o.dest===fd)&&(!ft||o.tipo===ft)&&(!fe||o.estado===fe);
+  });
   const empty=document.getElementById('empty-msg');
   if(!list.length){document.getElementById('tbody').innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
@@ -1313,7 +1318,7 @@ function renderTabla(){
       <td style="font-weight:500">${(()=>{const url=getTrackingURL(o.carrier,o.doc,o.carrierUrlCustom);if(!url||url.startsWith('copy:'))return`<span style="color:var(--c-orange)">${o.ref}</span>`;return`<a href="${url}" target="_blank" style="color:var(--c-orange);text-decoration:none;display:flex;align-items:center;gap:4px" title="Ver rastreo">${o.ref} <span style="font-size:10px">↗</span></a>`;})()}</td>
       <td style="color:var(--c-muted);font-size:11px">${o.prov}</td>
       <td><span class="badge ${o.tipo==='Aérea'?'b-aerea':'b-maritima'}">${o.tipo}</span></td>
-      <td><span class="badge ${o.dest==='Venezuela'?'b-venezuela':'b-chile'}">${o.dest}</span></td>
+      <td><span class="badge ${o.dest==='Venezuela'?'b-venezuela':o.dest==='Madrid'?'b-madrid':'b-chile'}">${o.dest}</span></td>
       <td>
         <select onchange="cambiarEstado(${o.id},this.value)" style="font-size:11px;padding:3px 5px;border-radius:20px;border:0.5px solid var(--c-border);background:var(--c-card);color:var(--c-text);max-width:115px">
           ${ESTADOS.map(e=>`<option value="${e}" ${e===o.estado?'selected':''}>${e}</option>`).join('')}
@@ -1346,7 +1351,7 @@ function verDetalle(id){
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <p style="font-size:15px;font-weight:500;color:var(--c-orange)">${o.ref}</p>
           <span class="badge ${o.tipo==='Aérea'?'b-aerea':'b-maritima'}">${o.tipo}</span>
-          <span class="badge ${o.dest==='Venezuela'?'b-venezuela':'b-chile'}">${o.dest}</span>
+          <span class="badge ${o.dest==='Venezuela'?'b-venezuela':o.dest==='Madrid'?'b-madrid':'b-chile'}">${o.dest}</span>
         </div>
         <button class="btn-ghost" onclick="cerrarDetalle()">Cerrar</button>
       </div>
@@ -2098,7 +2103,7 @@ function renderHistorial(){
       <td style="font-weight:500;color:var(--c-orange)">${o.ref||'—'}</td>
       <td style="color:var(--c-muted)">${o.prov||'—'}</td>
       <td><span class="badge ${o.tipo==='Aérea'?'b-aerea':'b-maritima'}">${o.tipo||'—'}</span></td>
-      <td><span class="badge ${o.dest==='Venezuela'?'b-venezuela':'b-chile'}">${o.dest||'—'}</span></td>
+      <td><span class="badge ${o.dest==='Venezuela'?'b-venezuela':o.dest==='Madrid'?'b-madrid':'b-chile'}">${o.dest||'—'}</span></td>
       <td style="color:var(--c-orange)">${fmtMon(parseFloat(o.factura)||0,o.facturaMan||'EUR')}</td>
       <td style="color:var(--c-muted)">${fmtMon(parseFloat(o.flete)||0,o.fleteMan||'EUR')}</td>
       <td style="color:var(--c-muted)">${o.etd||'—'}</td>
