@@ -236,9 +236,9 @@ input:focus,select:focus{border-color:var(--c-orange)}
       </select>
       <select id="f-est-fil" onchange="renderTabla()" style="width:auto;min-width:170px">
         <option value="">Todos los estados</option>
-        <option value="Comprado">Comprado</option><option value="En tránsito a Madrid">En tránsito a Madrid</option>
-        <option value="En Madrid">En Madrid</option><option value="Enviado al destino">Enviado al destino</option>
-        <option value="Aduana">Aduana</option>
+        <option value="Comprado">Comprado</option>
+        <option value="En tránsito">En tránsito</option>
+        <option value="En aduana">En aduana</option>
         <option value="Entregado">Entregado</option>
       </select>
     </div>
@@ -263,6 +263,38 @@ input:focus,select:focus{border-color:var(--c-orange)}
     <p id="empty-msg" style="text-align:center;padding:2rem;font-size:13px;color:var(--c-muted);display:none">No hay órdenes que coincidan.</p>
   </div>
   <div id="detalle-panel" style="display:none;margin-top:1rem"></div>
+
+  <!-- Sección En almacén Madrid -->
+  <div id="seccion-madrid" style="margin-top:1.5rem;display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:16px">🏭</span>
+        <div>
+          <p style="font-size:14px;font-weight:600;color:var(--c-orange);margin:0">En almacén Madrid</p>
+          <p style="font-size:11px;color:var(--c-muted);margin:0">Mercancía entregada en Madrid esperando despacho al destino final</p>
+        </div>
+      </div>
+    </div>
+    <div class="panel" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:0.5px solid var(--c-border)">
+              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Ref.</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Proveedor</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Mercancía</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Factura</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Llegó Madrid</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Vinculada a</th>
+              <th style="padding:10px 12px;font-size:10px;color:var(--c-muted)"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-madrid"></tbody>
+        </table>
+      </div>
+      <p id="madrid-empty" style="text-align:center;padding:2rem;font-size:13px;color:var(--c-muted);display:none">No hay mercancía en almacén Madrid.</p>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════ MADRID ═══════════════ -->
@@ -364,6 +396,87 @@ input:focus,select:focus{border-color:var(--c-orange)}
   <!-- RESUMEN -->
   <div id="historial-resumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:1rem"></div>
 </div>
+
+<!-- ═══════════════ PROVEEDORES ═══════════════ -->
+<div id="tab-proveedores" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
+    <div>
+      <p style="font-size:15px;font-weight:600;color:var(--c-text);margin:0">Decisiones Logísticas</p>
+      <p style="font-size:12px;color:var(--c-muted);margin:4px 0 0">Historial de decisiones por proveedor y recomendaciones automáticas.</p>
+    </div>
+    <button class="btn-primary" onclick="abrirFormDecision()">+ Nueva decisión</button>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center">
+    <select id="prov-filter" onchange="renderDecisiones()" style="min-width:200px;font-size:13px;background:var(--c-card);color:var(--c-text);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:6px 10px">
+      <option value="">Todos los proveedores</option>
+    </select>
+    <select id="decision-filter" onchange="renderDecisiones()" style="min-width:180px;font-size:13px;background:var(--c-card);color:var(--c-text);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:6px 10px">
+      <option value="">Todas las decisiones</option>
+      <option value="proveedor">Proveedor envía</option>
+      <option value="nosotros">Nosotros coordinamos</option>
+    </select>
+  </div>
+  <div id="prov-recomendacion" style="margin-bottom:1.25rem"></div>
+  <div class="panel" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--c-border)">
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Proveedor</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Fecha</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Decisión</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Courier</th>
+            <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Costo</th>
+            <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Días</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Decidido por</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Notas</th>
+            <th style="padding:10px 12px"></th>
+          </tr>
+        </thead>
+        <tbody id="prov-tabla-body"></tbody>
+      </table>
+    </div>
+    <p id="prov-empty" style="text-align:center;padding:2.5rem;font-size:13px;color:var(--c-muted)">Sin decisiones registradas aún. Agrega la primera con "+ Nueva decisión".</p>
+  </div>
+</div>
+
+<!-- Modal nueva decisión -->
+<div id="decision-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:12px;padding:28px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;margin:1rem">
+    <p id="decision-modal-title" style="font-size:15px;font-weight:600;color:var(--c-text);margin:0 0 20px">Nueva Decisión Logística</p>
+    <div class="form-row">
+      <div class="form-group"><label>Proveedor</label><select id="d-prov" style="width:100%"></select></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="d-fecha"></div>
+    </div>
+    <div class="form-group"><label>Decisión</label>
+      <select id="d-decision">
+        <option value="proveedor">Proveedor envía</option>
+        <option value="nosotros">Nosotros coordinamos</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Courier usado</label><input type="text" id="d-courier" placeholder="FedEx, DHL, MBE..."></div>
+      <div class="form-group"><label>Costo logístico</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="d-costo" placeholder="0.00" style="flex:1">
+          <select id="d-costo-mon" style="width:80px"><option value="EUR">EUR</option><option value="USD">USD</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Días de tránsito reales</label><input type="number" id="d-dias" placeholder="0" min="0"></div>
+      <div class="form-group"><label>Decidido por</label><input type="text" id="d-decidido" placeholder="Nombre"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:1.5rem"><label>Notas</label>
+      <textarea id="d-notas" rows="2" placeholder="¿Por qué se tomó esta decisión?" style="resize:vertical"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn-ghost" onclick="cerrarFormDecision()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarDecision()">Guardar decisión</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ═══════════════ PROVEEDORES ═══════════════ -->
 <div id="tab-proveedores" style="display:none">
@@ -622,7 +735,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <div class="form-row">
       <div class="form-group"><label>Tipo de carga</label><select id="i-tipo"><option>Aérea</option><option>Marítima</option></select></div>
-      <div class="form-group"><label>Destino final</label><select id="i-dest"><option>Venezuela</option><option>Chile</option></select></div>
+      <div class="form-group"><label>Destino final</label><select id="i-dest"><option>Venezuela</option><option>Chile</option><option>Madrid</option></select></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Estado</label>
@@ -1467,6 +1580,7 @@ function abrirForm(id){
     ordenCorreosTemp=[...(o.correos||[])];
   }else{
     window._pipSolicitudId=null;
+    window._madridOrigenId=null;
     ['i-ref','i-doc','i-merc','i-notas','i-correo-orden','i-carrier-url-custom','i-link-factura','i-link-comprobante'].forEach(x=>document.getElementById(x).value='');
     linksFacturaTemp=[];
     linksComprobanteTemp=[];
@@ -1537,6 +1651,12 @@ async function guardar(){
     pipeline=pipeline.filter(x=>x.id!==window._pipSolicitudId);
     window._pipSolicitudId=null;
     await guardarPipelineEnSheets();
+  }
+  // Si viene de despacho desde Madrid, vincular con la orden origen
+  if(window._madridOrigenId){
+    const origen = ordenes.find(o=>o.id===window._madridOrigenId);
+    if(origen) origen.ordenMadridId = String(nid-1);
+    window._madridOrigenId = null;
   }
   cerrarForm();renderTodo();
   setStatus('loading','Guardando en Google Sheets...');
@@ -2419,6 +2539,69 @@ function eliminarDecision(id) {
 async function guardarDecisionesEnSheets() {
   await postAGAS({ action: 'save_decisiones', decisiones });
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// SECCIÓN EN ALMACÉN MADRID
+// ══════════════════════════════════════════════════════════════
+function renderSeccionMadrid() {
+  const enMadrid = ordenes.filter(o => o.dest === 'Madrid' && o.estado === 'Entregado');
+  const seccion = document.getElementById('seccion-madrid');
+  const tbody = document.getElementById('tbody-madrid');
+  const empty = document.getElementById('madrid-empty');
+  if (!seccion) return;
+
+  if (enMadrid.length === 0) {
+    seccion.style.display = 'none';
+    return;
+  }
+  seccion.style.display = 'block';
+
+  const fmt = n => Number(n||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  tbody.innerHTML = enMadrid.map(o => {
+    const mon = (o.facturaMan||'EUR') === 'USD' ? '$' : '€';
+    const vinculada = ordenes.find(x => x.ordenMadridId === String(o.id));
+    const vinculadaHtml = vinculada
+      ? `<span style="font-size:11px;color:#5dca8a">→ ${vinculada.ref} (${vinculada.dest})</span>`
+      : `<button class="btn-primary" style="padding:4px 10px;font-size:11px" onclick="despacharDesdeMadrid(${o.id})">+ Despachar</button>`;
+    return `<tr style="border-bottom:0.5px solid var(--c-border)">
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text);font-weight:500">${o.ref||'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text)">${o.prov||'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.merc||'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text)">${o.factura?mon+fmt(o.factura):'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-muted)">${o.eta||'—'}</td>
+      <td style="padding:10px 12px">${vinculadaHtml}</td>
+      <td style="padding:10px 12px">
+        <button class="btn-ver" onclick="abrirDetalle(${o.id})">Ver</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  if(empty) empty.style.display = enMadrid.length ? 'none' : 'block';
+}
+
+function despacharDesdeMadrid(idOrigen) {
+  const origen = ordenes.find(o => o.id === idOrigen);
+  if (!origen) return;
+  // Abrir formulario de nueva orden pre-llenado
+  abrirForm(null);
+  setTimeout(() => {
+    if(document.getElementById('i-prov')) document.getElementById('i-prov').value = origen.prov || '';
+    if(document.getElementById('i-dest')) document.getElementById('i-dest').value = 'Venezuela';
+    if(document.getElementById('i-tipo')) document.getElementById('i-tipo').value = origen.tipo || 'Aérea';
+    if(document.getElementById('i-merc')) document.getElementById('i-merc').value = origen.merc || '';
+    if(document.getElementById('i-estado')) document.getElementById('i-estado').value = 'En tránsito';
+    // Copiar links de factura
+    if(origen.linksFactura && origen.linksFactura.length) {
+      linksFacturaTemp = [...origen.linksFactura];
+      renderLinksFacturaTags();
+    }
+    // Guardar referencia al origen para vincular al guardar
+    window._madridOrigenId = idOrigen;
+  }, 150);
+}
+
+
 
 // Restaurar sesión si existe
 (function(){
