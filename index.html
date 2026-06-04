@@ -739,7 +739,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <div class="form-row">
       <div class="form-group"><label>Estado</label>
-        <select id="i-estado"><option>Comprado</option><option>En tránsito a Madrid</option><option>En tránsito</option><option>En Madrid</option><option>Enviado al destino</option><option>Aduana</option><option>En aduana</option><option>Entregado</option></select>
+        <select id="i-estado"><option>Comprado</option><option>En tránsito</option><option>En aduana</option><option>Entregado</option></select>
       </div>
       <div class="form-group"><label>Empresa de transporte</label>
         <select id="i-carrier" onchange="actualizarCarrierURL()">
@@ -862,8 +862,8 @@ async function postAGAS(payload) {
   const blob = new Blob([JSON.stringify(payload)], {type: 'text/plain'});
   return fetch(SCRIPT_URL, {method: 'POST', mode: 'no-cors', body: blob});
 }
-const ESTADOS=['Comprado','En tránsito a Madrid','En tránsito','En Madrid','Enviado al destino','Aduana','En aduana','Entregado'];
-const ESTADO_COLORS=['#888','#6fb3f5','#3a8ee6','#f09040','#5dca8a','#e67e22','#e74c3c','#2ecc71'];
+const ESTADOS=['Comprado','En tránsito','En aduana','Entregado'];
+const ESTADO_COLORS=['#888','#6fb3f5','#e74c3c','#2ecc71'];
 const ESTADO_EP=['ep-0','ep-1','ep-2','ep-3','ep-4'];
 
 let ordenes=[],nid=1,detalleId=null,editId=null,delId=null;
@@ -1092,7 +1092,6 @@ function renderDashboard(){
   const total=ordenes.length;
   const enCurso=ordenes.filter(o=>o.estado!=='Entregado').length;
   const entregadas=ordenes.filter(o=>o.estado==='Entregado').length;
-  const enMadrid=ordenes.filter(o=>o.estado==='En Madrid').length;
   const aereas=ordenes.filter(o=>o.tipo==='Aérea').length;
   const ven=ordenes.filter(o=>o.dest==='Venezuela').length;
   const chi=ordenes.filter(o=>o.dest==='Chile').length;
@@ -1106,7 +1105,7 @@ function renderDashboard(){
 
   document.getElementById('dash-kpis').innerHTML=`
     <div class="dash-kpi"><div class="dash-kpi-label">Total órdenes</div><div class="dash-kpi-val">${total}</div><div class="dash-kpi-sub">${enCurso} en curso · ${entregadas} entregadas</div></div>
-    <div class="dash-kpi"><div class="dash-kpi-label">En Madrid</div><div class="dash-kpi-val" style="color:var(--c-orange)">${enMadrid}</div><div class="dash-kpi-sub">Pendientes de despacho</div></div>
+
     <div class="dash-kpi"><div class="dash-kpi-label">Venezuela</div><div class="dash-kpi-val" style="color:#f09040">${ven}</div><div class="dash-kpi-sub">${Math.round(ven/total*100)||0}% del total</div></div>
     <div class="dash-kpi"><div class="dash-kpi-label">Chile</div><div class="dash-kpi-val" style="color:#c990f0">${chi}</div><div class="dash-kpi-sub">${Math.round(chi/total*100)||0}% del total</div></div>
     <div class="dash-kpi"><div class="dash-kpi-label">Facturado EUR</div><div class="dash-kpi-val" style="font-size:18px">${fmtMon(factEUR,'EUR')}</div><div class="dash-kpi-sub">Total acumulado</div></div>
@@ -1246,7 +1245,6 @@ function renderDashboard(){
   }
 
   // EN CONSOLIDACIÓN MADRID
-  const enMadridDash=ordenes.filter(o=>o.estado==='En Madrid');
   const madridVen=enMadridDash.filter(o=>o.dest==='Venezuela');
   const madridChi=enMadridDash.filter(o=>o.dest==='Chile');
   function madridCards(lista,color){
@@ -1462,8 +1460,6 @@ async function cambiarEstado(id,nuevoEstado){
   const esAduana = nuevoEstado==='Aduana'||nuevoEstado==='En aduana';
   if(nuevoEstado==='Comprado'){
     correosEspeciales=[...(d.logistica||[]),...(d.finanzas||[])];
-  } else if(nuevoEstado==='Enviado al destino'){
-    correosEspeciales=[...(d.destino||[])];
   } else if(nuevoEstado==='Entregado'){
     correosEspeciales=[...(d.finanzas||[]),...(d.gerencia||[])];
   }
@@ -1483,7 +1479,6 @@ async function cambiarEstado(id,nuevoEstado){
 }
 
 function renderMadrid(){
-  const enM=ordenes.filter(o=>o.estado==='En Madrid');
   function cards(lista){
     if(!lista.length)return`<p style="font-size:13px;color:var(--c-sub);padding:.75rem 0">Sin cargas en Madrid actualmente</p>`;
     return lista.map(o=>`
@@ -2303,7 +2298,7 @@ const DEPTOS_CONFIG = [
   {key:'finanzas',   label:'Finanzas / Pagos',     nota:'Notificado cuando estado es Comprado o Entregado'},
   {key:'logistica',  label:'Logística',            nota:'Notificado cuando estado es Comprado'},
   {key:'gerencia',   label:'Gerencia',             nota:'Notificado cuando estado es Entregado'},
-  {key:'destino',    label:'Destino / Recepción',  nota:'Notificado cuando estado es Enviado al destino'},
+  {key:'destino',    label:'Destino / Recepción',  nota:'Notificado cuando estado es En tránsito hacia el destino final'},
 ];
 
 function renderListaDeptos(){
