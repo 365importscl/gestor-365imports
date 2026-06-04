@@ -2572,8 +2572,9 @@ function renderSeccionMadrid() {
       <td style="padding:10px 12px;font-size:13px;color:var(--c-text)">${o.factura?mon+fmt(o.factura):'—'}</td>
       <td style="padding:10px 12px;font-size:13px;color:var(--c-muted)">${o.eta||'—'}</td>
       <td style="padding:10px 12px">${vinculadaHtml}</td>
-      <td style="padding:10px 12px">
-        <button class="btn-ver" onclick="abrirDetalle(${o.id})">Ver</button>
+      <td style="padding:10px 12px;white-space:nowrap;display:flex;gap:4px">
+        <button class="btn-ver" onclick="verDetalle(${o.id})">Ver</button>
+        <button class="btn-edit" onclick="abrirForm(${o.id})">Editar</button>
       </td>
     </tr>`;
   }).join('');
