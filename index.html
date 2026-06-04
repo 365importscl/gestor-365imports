@@ -1247,7 +1247,8 @@ function renderDashboard(){
     document.getElementById('dash-meses').innerHTML=`<p style="font-size:13px;color:var(--c-muted)">Sin fechas de compra registradas aún.</p>`;
   }
 
-  // EN CONSOLIDACIÓN MADRID
+  // EN ALMACÉN MADRID
+  const enMadridDash = ordenes.filter(o => (o.dest === 'Madrid' && o.estado === 'Entregado') || o.estado === 'En Madrid');
   const madridVen=enMadridDash.filter(o=>o.dest==='Venezuela');
   const madridChi=enMadridDash.filter(o=>o.dest==='Chile');
   function madridCards(lista,color){
