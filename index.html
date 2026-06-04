@@ -1568,6 +1568,12 @@ function abrirForm(id){
     document.getElementById('i-tipo').value=o.tipo;
     document.getElementById('i-dest').value=o.dest;
     document.getElementById('i-estado').value=o.estado;
+    // Bloquear estado si es DHL o FedEx
+    const esDhlFedex = o.carrier==='dhl'||o.carrier==='fedex';
+    const selEstado = document.getElementById('i-estado');
+    selEstado.disabled = esDhlFedex;
+    selEstado.style.opacity = esDhlFedex ? '0.5' : '1';
+    selEstado.title = esDhlFedex ? 'El estado lo actualiza el tracking automático' : '';
     document.getElementById('i-doc').value=o.doc||'';
     document.getElementById('i-carrier').value=o.carrier||'';
     document.getElementById('i-carrier-url-custom').value=o.carrierUrlCustom||'';
@@ -1616,7 +1622,12 @@ function abrirForm(id){
   }
   renderOrdenCorreosTags();
 }
-function cerrarForm(){document.getElementById('form-modal').style.display='none';editId=null;}
+function cerrarForm(){
+  document.getElementById('form-modal').style.display='none';
+  editId=null;
+  const sel=document.getElementById('i-estado');
+  sel.disabled=false;sel.style.opacity='1';sel.title='';
+}
 
 async function guardar(){
   const ref=document.getElementById('i-ref').value.trim();
