@@ -626,7 +626,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <div class="form-row">
       <div class="form-group"><label>Estado</label>
-        <select id="i-estado"><option>Comprado</option><option>En tránsito a Madrid</option><option>En Madrid</option><option>Enviado al destino</option><option>Aduana</option><option>Entregado</option></select>
+        <select id="i-estado"><option>Comprado</option><option>En tránsito a Madrid</option><option>En tránsito</option><option>En Madrid</option><option>Enviado al destino</option><option>Aduana</option><option>En aduana</option><option>Entregado</option></select>
       </div>
       <div class="form-group"><label>Empresa de transporte</label>
         <select id="i-carrier" onchange="actualizarCarrierURL()">
@@ -749,8 +749,8 @@ async function postAGAS(payload) {
   const blob = new Blob([JSON.stringify(payload)], {type: 'text/plain'});
   return fetch(SCRIPT_URL, {method: 'POST', mode: 'no-cors', body: blob});
 }
-const ESTADOS=['Comprado','En tránsito a Madrid','En Madrid','Enviado al destino','Aduana','Entregado'];
-const ESTADO_COLORS=['#888','#6fb3f5','#f09040','#5dca8a','#e67e22','#2ecc71'];
+const ESTADOS=['Comprado','En tránsito a Madrid','En tránsito','En Madrid','Enviado al destino','Aduana','En aduana','Entregado'];
+const ESTADO_COLORS=['#888','#6fb3f5','#3a8ee6','#f09040','#5dca8a','#e67e22','#e74c3c','#2ecc71'];
 const ESTADO_EP=['ep-0','ep-1','ep-2','ep-3','ep-4'];
 
 let ordenes=[],nid=1,detalleId=null,editId=null,delId=null;
@@ -1346,6 +1346,7 @@ async function cambiarEstado(id,nuevoEstado){
   const todosCorreos=[...new Set([...(config.correos||[]),...(o.correos||[]),...Object.values(d).flat()])];
   // Correos especiales por estado
   let correosEspeciales=[];
+  const esAduana = nuevoEstado==='Aduana'||nuevoEstado==='En aduana';
   if(nuevoEstado==='Comprado'){
     correosEspeciales=[...(d.logistica||[]),...(d.finanzas||[])];
   } else if(nuevoEstado==='Enviado al destino'){
