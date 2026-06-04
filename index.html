@@ -1029,6 +1029,7 @@ async function cargarDesdeSheets(silencioso=false){
         pagoMercancia:String(row.pagoMercancia||'Pendiente').trim(),
         pagoFlete:String(row.pagoFlete||'Pendiente').trim(),
         peso:parseFloat(row.peso)||0,
+        ordenMadridId:String(row.ordenMadridId||'').trim(),
       })).filter(o=>o.id);
       nid=Math.max(...ordenes.map(o=>o.id),0)+1;
       if(data.config){
@@ -1307,7 +1308,7 @@ function renderTabla(){
   const ft=document.getElementById('f-tipo-fil').value;
   const fe=document.getElementById('f-est-fil').value;
   const list=ordenes.filter(o=>{
-    if(o.dest==='Madrid'&&o.estado==='Entregado')return false;
+    if((o.dest==='Madrid'&&o.estado==='Entregado')||o.estado==='En Madrid')return false;
     return(!fd||o.dest===fd)&&(!ft||o.tipo===ft)&&(!fe||o.estado===fe);
   });
   const empty=document.getElementById('empty-msg');
@@ -2545,7 +2546,7 @@ async function guardarDecisionesEnSheets() {
 // SECCIÓN EN ALMACÉN MADRID
 // ══════════════════════════════════════════════════════════════
 function renderSeccionMadrid() {
-  const enMadrid = ordenes.filter(o => o.dest === 'Madrid' && o.estado === 'Entregado');
+  const enMadrid = ordenes.filter(o => (o.dest === 'Madrid' && o.estado === 'Entregado') || o.estado === 'En Madrid');
   const seccion = document.getElementById('seccion-madrid');
   const tbody = document.getElementById('tbody-madrid');
   const empty = document.getElementById('madrid-empty');
