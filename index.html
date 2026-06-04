@@ -1030,6 +1030,7 @@ async function cargarDesdeSheets(silencioso=false){
         pagoFlete:String(row.pagoFlete||'Pendiente').trim(),
         peso:parseFloat(row.peso)||0,
         ordenMadridId:String(row.ordenMadridId||'').trim(),
+        fechaLlegadaMadrid:String(row.fechaLlegadaMadrid||'').trim(),
       })).filter(o=>o.id);
       nid=Math.max(...ordenes.map(o=>o.id),0)+1;
       if(data.config){
@@ -1614,7 +1615,7 @@ async function guardar(){
     merc:document.getElementById('i-merc').value.trim(),
     linksFactura:[...linksFacturaTemp],
     linksComprobante:[...linksComprobanteTemp],
-    fechaCreacion:new Date().toISOString().slice(0,10),
+    fechaCreacion:editId?(ordenes.find(x=>x.id===editId)?.fechaCreacion||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10),
     factura:parseFloat(document.getElementById('i-factura').value)||0,facturaMan:document.getElementById('i-factura-mon').value,
     flete:parseFloat(document.getElementById('i-flete').value)||0,fleteMan:document.getElementById('i-flete-mon').value,
     aduana:parseFloat(document.getElementById('i-aduana').value)||0,aduanaMan:document.getElementById('i-aduana-mon').value,
@@ -1661,7 +1662,11 @@ async function guardar(){
   }
   cerrarForm();renderTodo();
   setStatus('loading','Guardando en Google Sheets...');
+  // Pausar autoSync mientras guardamos para evitar que pise los datos
+  if(autoSyncInterval){clearInterval(autoSyncInterval);autoSyncInterval=null;}
   await guardarEnSheets(cambios,todosCorreos);
+  // Reanudar autoSync
+  iniciarAutoSync();
 }
 
 function pedirDel(id){
@@ -2570,7 +2575,7 @@ function renderSeccionMadrid() {
       <td style="padding:10px 12px;font-size:13px;color:var(--c-text)">${o.prov||'—'}</td>
       <td style="padding:10px 12px;font-size:13px;color:var(--c-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.merc||'—'}</td>
       <td style="padding:10px 12px;font-size:13px;color:var(--c-text)">${o.factura?mon+fmt(o.factura):'—'}</td>
-      <td style="padding:10px 12px;font-size:13px;color:var(--c-muted)">${o.eta||'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-muted)">${o.fechaLlegadaMadrid||o.eta||'—'}</td>
       <td style="padding:10px 12px">${vinculadaHtml}</td>
       <td style="padding:10px 12px;white-space:nowrap;display:flex;gap:4px">
         <button class="btn-ver" onclick="verDetalle(${o.id})">Ver</button>
