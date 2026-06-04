@@ -1031,6 +1031,7 @@ async function cargarDesdeSheets(silencioso=false){
         peso:parseFloat(row.peso)||0,
         ordenMadridId:String(row.ordenMadridId||'').trim(),
         fechaLlegadaMadrid:String(row.fechaLlegadaMadrid||'').trim(),
+        recibidoPor:String(row.recibidoPor||'').trim(),
       })).filter(o=>o.id);
       nid=Math.max(...ordenes.map(o=>o.id),0)+1;
       if(data.config){
@@ -1323,9 +1324,18 @@ function renderTabla(){
       <td><span class="badge ${o.tipo==='Aérea'?'b-aerea':'b-maritima'}">${o.tipo}</span></td>
       <td><span class="badge ${o.dest==='Venezuela'?'b-venezuela':o.dest==='Madrid'?'b-madrid':'b-chile'}">${o.dest}</span></td>
       <td>
-        <select onchange="cambiarEstado(${o.id},this.value)" style="font-size:11px;padding:3px 5px;border-radius:20px;border:0.5px solid var(--c-border);background:var(--c-card);color:var(--c-text);max-width:115px">
-          ${ESTADOS.map(e=>`<option value="${e}" ${e===o.estado?'selected':''}>${e}</option>`).join('')}
-        </select>
+        ${o.carrier==='dhl'||o.carrier==='fedex'?(
+          o.estado==='Entregado'?
+          `<div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:rgba(46,204,113,0.15);color:#2ecc71">${o.estado}</span>
+            ${!o.recibidoPor?`<button class="btn-primary" style="font-size:10px;padding:3px 8px" onclick="confirmarRecepcion(${o.id})">✅ Confirmar recepción</button>`:`<span style="font-size:10px;color:var(--c-muted)">Recibido por ${o.recibidoPor}</span>`}
+          </div>`:
+          `<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:rgba(58,142,230,0.15);color:#6fb3f5;display:inline-flex;align-items:center;gap:4px">🔄 ${o.estado}</span>`
+        ):(
+          `<select onchange="cambiarEstado(${o.id},this.value)" style="font-size:11px;padding:3px 5px;border-radius:20px;border:0.5px solid var(--c-border);background:var(--c-card);color:var(--c-text);max-width:115px">
+            ${ESTADOS.map(e=>`<option value="${e}" ${e===o.estado?'selected':''}>${e}</option>`).join('')}
+          </select>`
+        )}
       </td>
       <td style="color:var(--c-orange);font-size:12px">${fmtMon(o.factura||0,o.facturaMan||'EUR')}</td>
       <td style="font-size:11px;color:var(--c-muted)">${o.etd||'—'}</td>
@@ -2613,6 +2623,28 @@ function despacharDesdeMadrid(idOrigen) {
 }
 
 
+
+async function confirmarRecepcion(id) {
+  const o = ordenes.find(x => x.id === id);
+  if (!o) return;
+  if (!confirm('¿Confirmar recepción de la orden ' + o.ref + '?')) return;
+  o.recibidoPor = usuarioActual;
+  const dep = config.deptos || {};
+  const todosCorreos = [...new Set([...(config.correos||[]), ...Object.values(dep).flat()])];
+  const cambios = [{
+    ref: o.ref, prov: o.prov, dest: o.dest, doc: o.doc, tipo: o.tipo, merc: o.merc,
+    eta: o.eta, etd: o.etd, factura: o.factura, facturaMan: o.facturaMan,
+    flete: o.flete, fleteMan: o.fleteMan, aduana: o.aduana, aduanaMan: o.aduanaMan,
+    otros: o.otros, otrosMan: o.otrosMan,
+    estadoAnterior: 'Entregado', estadoNuevo: 'Entregado',
+    recibidoPor: usuarioActual, modificadoPor: '',
+    linksFactura: o.linksFactura || [], linksComprobante: o.linksComprobante || []
+  }];
+  renderTodo();
+  if(autoSyncInterval){clearInterval(autoSyncInterval);autoSyncInterval=null;}
+  await guardarEnSheets(cambios, todosCorreos);
+  iniciarAutoSync();
+}
 
 // Restaurar sesión si existe
 (function(){
