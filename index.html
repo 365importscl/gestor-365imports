@@ -165,6 +165,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
   <button class="tab-btn" onclick="cambiarTab('ordenes',this)">Todas las órdenes</button>
   <button class="tab-btn" onclick="cambiarTab('historial',this)">📋 Historial</button>
   <button class="tab-btn" onclick="cambiarTab('proveedores',this)">🏭 Proveedores</button>
+  <button class="tab-btn" onclick="cambiarTab('log',this)">🔍 Log de cambios</button>
 </div>
 
 <!-- ═══════════════ DASHBOARD ═══════════════ -->
@@ -441,6 +442,31 @@ input:focus,select:focus{border-color:var(--c-orange)}
   </div>
 </div>
 
+<!-- ═══════════════ LOG DE CAMBIOS ═══════════════ -->
+<div id="tab-log" style="display:none">
+  <div style="margin-bottom:1.25rem">
+    <p style="font-size:15px;font-weight:600;color:var(--c-text);margin:0">Log de Cambios de Estado</p>
+    <p style="font-size:12px;color:var(--c-muted);margin:4px 0 0">Registro de quién cambió el estado de cada orden y cuándo.</p>
+  </div>
+  <div class="panel" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--c-border)">
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Fecha</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Usuario</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Ref.</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Proveedor</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Cambio</th>
+          </tr>
+        </thead>
+        <tbody id="log-tabla-body"></tbody>
+      </table>
+    </div>
+    <p id="log-empty" style="text-align:center;padding:2.5rem;font-size:13px;color:var(--c-muted)">Sin registros aún.</p>
+  </div>
+</div>
+
 <!-- Modal nueva decisión -->
 <div id="decision-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center">
   <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:12px;padding:28px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;margin:1rem">
@@ -519,6 +545,31 @@ input:focus,select:focus{border-color:var(--c-orange)}
       </table>
     </div>
     <p id="prov-empty" style="text-align:center;padding:2.5rem;font-size:13px;color:var(--c-muted)">Sin decisiones registradas aún. Agrega la primera con "+ Nueva decisión".</p>
+  </div>
+</div>
+
+<!-- ═══════════════ LOG DE CAMBIOS ═══════════════ -->
+<div id="tab-log" style="display:none">
+  <div style="margin-bottom:1.25rem">
+    <p style="font-size:15px;font-weight:600;color:var(--c-text);margin:0">Log de Cambios de Estado</p>
+    <p style="font-size:12px;color:var(--c-muted);margin:4px 0 0">Registro de quién cambió el estado de cada orden y cuándo.</p>
+  </div>
+  <div class="panel" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--c-border)">
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Fecha</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Usuario</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Ref.</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Proveedor</th>
+            <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--c-muted);font-weight:500;text-transform:uppercase">Cambio</th>
+          </tr>
+        </thead>
+        <tbody id="log-tabla-body"></tbody>
+      </table>
+    </div>
+    <p id="log-empty" style="text-align:center;padding:2.5rem;font-size:13px;color:var(--c-muted)">Sin registros aún.</p>
   </div>
 </div>
 
@@ -1080,6 +1131,20 @@ async function cargarDesdeSheets(silencioso=false){
 
 async function guardarEnSheets(cambios,correosOverride){
   const correosEnvio=correosOverride||config.correos;
+  // Registrar log de cambios (no bloquea el guardado principal)
+  if(cambios && cambios.length > 0){
+    const logEntries = cambios.map(c=>({
+      fecha: new Date().toISOString(),
+      usuario: usuarioActual||'Sistema',
+      ref: c.ref||'',
+      prov: c.prov||'',
+      campo: 'estado',
+      anterior: c.estadoAnterior||'',
+      nuevo: c.estadoNuevo||'',
+      modificadoPor: c.modificadoPor||c.recibidoPor||usuarioActual||'Sistema'
+    }));
+    postAGAS({action:'save_log',entries:logEntries});
+  }
   try{
     await postAGAS({action:'save_all',ordenes,cambios:cambios||[],correos:correosEnvio});
     setStatus('ok','Guardado en Google Sheets · '+hora());
@@ -2129,7 +2194,7 @@ async function cargarPipeline(){
 function cambiarTab(t,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  ['dashboard','ordenes','historial','pipeline','proveedores'].forEach(x=>{
+  ['dashboard','ordenes','historial','pipeline','proveedores','log'].forEach(x=>{
     const el=document.getElementById('tab-'+x);
     if(el) el.style.display=x===t?'block':'none';
   });
@@ -2137,6 +2202,7 @@ function cambiarTab(t,btn){
   if(t==='historial'){cargarHistorial();renderPipelineHistorial();}
   if(t==='pipeline')cargarPipeline();
   if(t==='proveedores'){poblarFiltroProveedores();renderDecisiones();}
+  if(t==='log'){cargarLog();}
 }
 let historial=[];
 
@@ -2720,6 +2786,47 @@ function calcularCostoKg() {
   } else {
     el.textContent = '—';
   }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// LOG DE CAMBIOS
+// ══════════════════════════════════════════════════════════════
+let logCambios = [];
+
+async function cargarLog() {
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=log&t=' + Date.now());
+    const data = await res.json();
+    if (data.log) {
+      logCambios = data.log;
+      renderLog();
+    }
+  } catch(e) { console.log('Error cargando log:', e); }
+}
+
+function renderLog() {
+  const tbody = document.getElementById('log-tabla-body');
+  const empty = document.getElementById('log-empty');
+  if (!tbody) return;
+  const lista = [...logCambios].reverse(); // más reciente primero
+  if (lista.length === 0) {
+    tbody.innerHTML = '';
+    if(empty) empty.style.display = 'block';
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+  tbody.innerHTML = lista.slice(0, 200).map(l => {
+    const fecha = new Date(l.fecha);
+    const fechaStr = isNaN(fecha) ? l.fecha : fecha.toLocaleString('es-VE', {dateStyle:'short', timeStyle:'short'});
+    return `<tr style="border-bottom:0.5px solid var(--c-border)">
+      <td style="padding:10px 12px;font-size:12px;color:var(--c-muted)">${fechaStr}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text);font-weight:500">${l.usuario||l.modificadoPor||'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text)">${l.ref||'—'}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-muted)">${l.prov||'—'}</td>
+      <td style="padding:10px 12px;font-size:12px;color:var(--c-muted)"><span style="color:#888">${l.anterior}</span> → <span style="color:#F5C800;font-weight:500">${l.nuevo}</span></td>
+    </tr>`;
+  }).join('');
 }
 
 // Restaurar sesión si existe
