@@ -1978,8 +1978,9 @@ function verSolicitud(id){
     btnConvertir.className='btn-primary';btnConvertir.textContent='📦 Crear orden';
     btnConvertir.onclick=()=>{
       cerrarVerPipeline();
-      window._pipSolicitudId=id;
+      const solicitudIdGuardado=id;
       abrirForm(null);
+      window._pipSolicitudId=solicitudIdGuardado;
       setTimeout(()=>{
         const sol=pipeline.find(x=>x.id===id);
         if(!sol)return;
