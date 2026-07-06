@@ -1541,15 +1541,6 @@ function verDetalle(id){
   const panel=document.getElementById('detalle-panel');
   if(detalleId===id){detalleId=null;panel.style.display='none';renderTabla();return;}
   detalleId=id;
-  // En móvil scroll suave a la orden
-  setTimeout(()=>{
-    const tr=document.querySelector('tr[data-id="'+id+'"]');
-    if(tr){
-      tr.scrollIntoView({behavior:'smooth',block:'start'});
-    } else {
-      panel.scrollIntoView({behavior:'smooth',block:'start'});
-    }
-  },150);
   const o=ordenes.find(x=>x.id===id);
   const ei=ESTADOS.indexOf(o.estado);
   panel.style.display='block';
@@ -1663,7 +1654,15 @@ function verDetalle(id){
   `;
   renderTabla();
 }
-function cerrarDetalle(){detalleId=null;document.getElementById('detalle-panel').style.display='none';renderTabla();}
+function cerrarDetalle(){
+  detalleId=null;
+  const panel=document.getElementById('detalle-panel');
+  panel.style.display='none';
+  // Devolver panel a su posición original
+  const tabOrdenes=document.getElementById('tab-ordenes');
+  if(tabOrdenes && panel.parentNode !== tabOrdenes) tabOrdenes.appendChild(panel);
+  renderTabla();
+}
 
 async function cambiarEstado(id,nuevoEstado){
   const o=ordenes.find(x=>x.id===id);if(!o)return;
