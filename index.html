@@ -182,7 +182,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
   .modal-box { border-radius: var(--rad-lg) var(--rad-lg) 0 0; max-height: 90vh; overflow-y: auto; }
 
   /* Botones más grandes */
-  .btn-ver, .btn-edit, .btn-danger { padding: 7px 12px; font-size: 12px; }
+  .btn-ver, .btn-edit, .btn-danger, .btn-primary, .btn-ghost, .btn-sync, .btn-config { min-height: 44px; padding: 10px 16px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Detalle orden */
   .detalle-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1504,7 +1504,7 @@ function renderTabla(){
   if(!list.length){document.getElementById('tbody').innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   document.getElementById('tbody').innerHTML=list.map(o=>`
-    <tr style="${detalleId===o.id?'background:rgba(232,119,34,0.07)':''}">
+    <tr data-id="${o.id}" style="${detalleId===o.id?'background:rgba(232,119,34,0.07)':''}">
       <td style="font-weight:500">${(()=>{const url=getTrackingURL(o.carrier,o.doc,o.carrierUrlCustom);if(!url||url.startsWith('copy:'))return`<span style="color:var(--c-orange)">${o.ref}</span>`;return`<a href="${url}" target="_blank" style="color:var(--c-orange);text-decoration:none;display:flex;align-items:center;gap:4px" title="Ver rastreo">${o.ref} <span style="font-size:10px">↗</span></a>`;})()}</td>
       <td style="color:var(--c-muted);font-size:11px">${o.prov}</td>
       <td><span class="badge ${o.tipo==='Aérea'?'b-aerea':'b-maritima'}">${o.tipo}</span></td>
@@ -1541,6 +1541,15 @@ function verDetalle(id){
   const panel=document.getElementById('detalle-panel');
   if(detalleId===id){detalleId=null;panel.style.display='none';renderTabla();return;}
   detalleId=id;
+  // En móvil scroll suave a la orden
+  setTimeout(()=>{
+    const tr=document.querySelector('tr[data-id="'+id+'"]');
+    if(tr){
+      tr.scrollIntoView({behavior:'smooth',block:'start'});
+    } else {
+      panel.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  },150);
   const o=ordenes.find(x=>x.id===id);
   const ei=ESTADOS.indexOf(o.estado);
   panel.style.display='block';
