@@ -113,6 +113,87 @@ input:focus,select:focus{border-color:var(--c-orange)}
 .donut-legend{flex:1}
 .donut-legend-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
 .donut-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE MÓVIL
+══════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  body { padding: 0.75rem; }
+  .wrap { padding: 1rem; }
+  .btn-config, .btn-ghost, .btn-sync { font-size: 11px; padding: 6px 10px; }
+  .btn-primary { font-size: 12px; padding: 8px 14px; }
+
+  /* Pestañas scroll horizontal */
+  div[style*="border-bottom:0.5px solid var(--c-border);margin-bottom:1.25rem"] {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+  }
+  div[style*="border-bottom:0.5px solid var(--c-border);margin-bottom:1.25rem"]::-webkit-scrollbar { display: none; }
+  .tab-btn { padding: 8px 14px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+
+  /* Dashboard 2 columnas */
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-kpi-val { font-size: 22px; }
+
+  /* Tabla como tarjetas */
+  table, thead, tbody, th, td, tr { display: block; }
+  thead { display: none; }
+  tr {
+    background: var(--c-card);
+    border: 0.5px solid var(--c-border);
+    border-radius: var(--rad);
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    overflow: visible;
+    white-space: normal;
+  }
+  tr:hover { background: var(--c-card); }
+  td {
+    padding: 4px 0;
+    border: none;
+    font-size: 13px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  td:before {
+    content: attr(data-label);
+    font-size: 10px;
+    color: var(--c-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    display: block;
+    margin-bottom: 2px;
+  }
+  td:empty { display: none; }
+  td:last-child {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 0.5px solid var(--c-border);
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* Formularios 1 columna */
+  .form-row { grid-template-columns: 1fr; }
+  .modal-back { padding: 0.5rem; align-items: flex-end; }
+  .modal-box { border-radius: var(--rad-lg) var(--rad-lg) 0 0; max-height: 90vh; overflow-y: auto; }
+
+  /* Botones más grandes */
+  .btn-ver, .btn-edit, .btn-danger { padding: 7px 12px; font-size: 12px; }
+
+  /* Detalle orden */
+  .detalle-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 400px) {
+  .dash-grid { grid-template-columns: 1fr 1fr; }
+  .dash-kpi-val { font-size: 20px; }
+  .tab-btn { padding: 8px 10px; font-size: 11px; }
+}
+
 </style>
 </head>
 <body>
