@@ -1,0 +1,26 @@
+{
+  "name": "Gestor Logístico 365 Imports",
+  "short_name": "365 Imports",
+  "description": "Gestor de importaciones y logística 365 Imports",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#F5C800",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://www.365imports.cl/wp-content/uploads/2024/07/LOGO-BLANCO-365-1024x1024.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://www.365imports.cl/wp-content/uploads/2024/07/LOGO-BLANCO-365-1024x1024.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "es"
+}
