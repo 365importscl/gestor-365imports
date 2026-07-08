@@ -2954,7 +2954,7 @@ function renderLog() {
 
 
 // ══════════════════════════════════════════════
-// EXTRACCIÓN DE PROFORMA CON IA
+// EXTRACCIÓN DE PROFORMA CON IA + SUBIDA A DRIVE
 // ══════════════════════════════════════════════
 async function procesarProforma(input) {
   const file = input.files[0];
@@ -2976,23 +2976,46 @@ async function procesarProforma(input) {
       });
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
-    // Extraer texto del PDF
+
+    // Extraer texto de todas las páginas del PDF
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await window.pdfjsLib.getDocument({data: new Uint8Array(arrayBuffer)}).promise;
-    let texto = '';
-    const pages = Math.min(pdf.numPages, 2);
+    const uint8 = new Uint8Array(arrayBuffer);
+    const pdf = await window.pdfjsLib.getDocument({data: uint8}).promise;
+    let textoCompleto = '';
+    const pages = Math.min(pdf.numPages, 3);
     for (let p = 1; p <= pages; p++) {
       const page = await pdf.getPage(p);
       const tc = await page.getTextContent();
-      texto += tc.items.map(i => i.str).join(' ') + ' ';
+      textoCompleto += tc.items.map(i => i.str).join(' ') + ' ';
     }
-    if (!texto.trim()) throw new Error('No se pudo extraer texto del PDF');
+    if (!textoCompleto.trim()) throw new Error('No se pudo extraer texto del PDF');
+
+    // Paso 1: Extraer datos con IA (enviar inicio Y final del doc para capturar el total)
     status.textContent = '🔄 Analizando con IA...';
-    // Llamar al GAS
-    const resultado = await callAGAS('extraer_proforma', {texto: texto});
+    const inicio = textoCompleto.substring(0, 1500);
+    const final = textoCompleto.substring(Math.max(0, textoCompleto.length - 500));
+    const textoResumen = inicio + ' ... ' + final;
+
+    const resultado = await callAGAS('extraer_proforma', {texto: textoResumen});
     if (!resultado || !resultado.ok) throw new Error(resultado && resultado.error ? resultado.error : 'Error en extracción');
     const d = resultado.data;
-    // Llenar campos con verificación null
+
+    // Paso 2: Subir PDF a Google Drive
+    status.textContent = '🔄 Subiendo a Google Drive...';
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const driveResult = await callAGAS('subir_factura', {
+      nombre: file.name,
+      base64: base64.substring(0, 5000000), // max 5MB
+      tipo: 'application/pdf'
+    });
+
+    // Paso 3: Llenar campos
     let n = 0;
     const set = (id, val) => { const el = document.getElementById(id); if (el && val) { el.value = val; return true; } return false; };
     if (set('i-ref', d.ref)) n++;
@@ -3005,15 +3028,29 @@ async function procesarProforma(input) {
     if (d.prov) {
       const sel = document.getElementById('i-prov');
       if (sel) {
-        const m = Array.from(sel.options).find(o => o.value.toLowerCase().includes(d.prov.toLowerCase()) || d.prov.toLowerCase().includes(o.value.toLowerCase()));
+        const m = Array.from(sel.options).find(o =>
+          o.value.toLowerCase().includes(d.prov.toLowerCase()) ||
+          d.prov.toLowerCase().includes(o.value.toLowerCase())
+        );
         if (m) { sel.value = m.value; n++; }
       }
     }
-    status.textContent = '✅ ' + n + ' campos autocompletados. Revisa y ajusta lo necesario.';
+
+    // Agregar link de Drive al campo de facturas
+    if (driveResult && driveResult.ok && driveResult.link) {
+      linksFacturaTemp = linksFacturaTemp || [];
+      linksFacturaTemp.push(driveResult.link);
+      if (typeof renderLinksFacturaTags === 'function') renderLinksFacturaTags();
+      n++;
+    }
+
+    status.textContent = '✅ ' + n + ' campos completados' + (driveResult && driveResult.ok ? ' · Factura subida a Drive ✓' : '') + '. Revisa y ajusta.';
     status.style.color = '#2ecc71';
     zona.style.borderColor = '#2ecc71';
+
   } catch(e) {
-    status.textContent = '❌ ' + (e.message || 'No se pudo leer. Completa manualmente.');
+    console.error('Error procesando proforma:', e);
+    status.textContent = '❌ ' + (e.message || 'No se pudo procesar. Completa manualmente.');
     status.style.color = '#e74c3c';
     zona.style.borderColor = '#e74c3c';
   }
