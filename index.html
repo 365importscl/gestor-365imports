@@ -2984,8 +2984,7 @@ async function procesarProforma(input) {
       for (let p = 1; p <= numPages; p++) {
         const page = await pdf.getPage(p);
         const tc = await page.getTextContent();
-        textoExtraido += tc.items.map(i => i.str).join(' ') + '
-';
+        textoExtraido += tc.items.map(i => i.str).join(' ') + ' ';
       }
 
       if (!textoExtraido.trim()) throw new Error('No se pudo extraer texto del PDF');
