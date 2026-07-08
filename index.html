@@ -3002,16 +3002,41 @@ async function procesarProforma(input) {
       mediaType = file.type;
     }
 
-    // Llamar al GAS que internamente usa la API de Claude
-    const resultado = await postAGAS({
-      action: 'extraer_proforma',
-      tipo: 'imagen',
-      mediaType: mediaType,
-      data: base64
+    // Llamar directamente a la API de Anthropic
+    const ANTHROPIC_KEY = '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';
+    const apiResp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mediaType, data: base64 }
+            },
+            {
+              type: 'text',
+              text: 'Extrae los datos de esta proforma/factura comercial. Responde SOLO con JSON valido sin markdown ni texto adicional: {"ref":"numero de orden o factura del proveedor","prov":"nombre del proveedor o empresa vendedora","merc":"descripcion corta de la mercancia max 60 caracteres","factura":"monto total numerico sin simbolos ni comas","facturaMan":"EUR o USD segun la moneda","etd":"fecha de envio en formato YYYY-MM-DD o vacio","eta":"fecha de entrega estimada en formato YYYY-MM-DD o vacio","notas":"informacion relevante adicional como incoterms peso etc"}'
+            }
+          ]
+        }]
+      })
     });
 
-    if (!resultado || !resultado.ok) throw new Error(resultado?.error || 'Error en extracción');
-    const extraido = resultado.data;
+    if (!apiResp.ok) throw new Error('Error API: ' + apiResp.status);
+    const apiData = await apiResp.json();
+    const texto = apiData.content && apiData.content[0] && apiData.content[0].text;
+    if (!texto) throw new Error('Sin respuesta de IA');
+    const clean = texto.replace(/```json|```/g, '').trim();
+    const extraido = JSON.parse(clean);
 
     // Rellenar formulario con los datos extraídos
     let camposRellenados = 0;
