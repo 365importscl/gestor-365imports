@@ -872,16 +872,13 @@ input:focus,select:focus{border-color:var(--c-orange)}
       <p id="form-titulo" style="font-size:16px;font-weight:500;color:var(--c-white)">Nueva orden</p>
       <button class="btn-ghost" onclick="cerrarForm()">Cerrar</button>
     </div>
-    <!-- CARGA DE PROFORMA CON IA -->
-    <div id="proforma-zona" style="margin-bottom:1.25rem;border:0.5px dashed var(--c-border);border-radius:var(--rad);padding:16px;text-align:center;transition:border-color 0.2s">
-      <input type="file" id="proforma-input" accept=".pdf,image/*" style="display:none" onchange="procesarProforma(this)">
+    <!-- ZONA PROFORMA -->
+    <div id="proforma-zona" style="margin-bottom:1.25rem;border:0.5px dashed var(--c-border);border-radius:var(--rad);padding:16px;text-align:center">
+      <input type="file" id="proforma-input" accept=".pdf" style="display:none" onchange="procesarProforma(this)">
       <p style="font-size:12px;color:var(--c-muted);margin:0 0 8px">¿Tienes la proforma del proveedor?</p>
-      <button type="button" class="btn-ghost" onclick="document.getElementById('proforma-input').click()" style="font-size:12px">
-        📄 Cargar proforma y autocompletar
-      </button>
-      <p id="proforma-status" style="font-size:11px;color:var(--c-muted);margin:8px 0 0;display:none"></p>
+      <button type="button" class="btn-ghost" onclick="document.getElementById('proforma-input').click()" style="font-size:12px">📄 Cargar proforma y autocompletar</button>
+      <p id="proforma-status" style="font-size:11px;margin:8px 0 0;display:none"></p>
     </div>
-
     <p style="font-size:11px;color:var(--c-orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Información general</p>
     <div class="form-row">
       <div class="form-group"><label>Referencia</label><input type="text" id="i-ref" placeholder="OC-2026-001"></div>
@@ -1040,27 +1037,15 @@ async function postAGAS(payload) {
   return fetch(SCRIPT_URL, {method: 'POST', mode: 'no-cors', body: blob});
 }
 
-async function callAGAS(payload) {
-  // Usa fetch con cors usando un truco: enviar como form data
-  const form = new FormData();
-  form.append('payload', JSON.stringify(payload));
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {'Content-Type': 'text/plain'}
-    });
-    return res.json();
-  } catch(e) {
-    // Si falla por CORS, intentar via GET con texto corto
-    const textoCorto = payload.texto ? payload.texto.substring(0, 2000) : '';
-    const params = new URLSearchParams({
-      action: payload.action,
-      texto: textoCorto
-    });
-    const res2 = await fetch(SCRIPT_URL + '?' + params.toString());
-    return res2.json();
-  }
+async function callAGAS(action, params) {
+  const url = new URL(SCRIPT_URL);
+  url.searchParams.set('action', action);
+  Object.keys(params).forEach(k => {
+    const v = typeof params[k] === 'string' ? params[k].substring(0, 2000) : String(params[k]);
+    url.searchParams.set(k, v);
+  });
+  const res = await fetch(url.toString());
+  return res.json();
 }
 const ESTADOS=['Comprado','En tránsito','En aduana','Entregado'];
 const ESTADO_COLORS=['#888','#6fb3f5','#e74c3c','#2ecc71'];
@@ -1788,10 +1773,10 @@ function renderCostos(){
 function abrirForm(id){
   editId=id;cerrarDetalle();
   document.getElementById('form-titulo').textContent=id?'Editar orden':'Nueva orden';
-  const zonaProforma = document.getElementById('proforma-zona');
-  if(zonaProforma) zonaProforma.style.display = id ? 'none' : 'block';
-  const statusProforma = document.getElementById('proforma-status');
-  if(statusProforma){ statusProforma.style.display='none'; statusProforma.style.color=''; }
+  const zp=document.getElementById('proforma-zona');
+  if(zp){zp.style.display=id?'none':'block';}
+  const sp=document.getElementById('proforma-status');
+  if(sp){sp.style.display='none';sp.style.color='';}
   poblarSelectProv(id?ordenes.find(x=>x.id===id)?.prov:'');
   ordenCorreosTemp=[];
   document.getElementById('form-modal').style.display='flex';
@@ -2968,102 +2953,70 @@ function renderLog() {
 }
 
 
-// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // EXTRACCIÓN DE PROFORMA CON IA
-// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 async function procesarProforma(input) {
   const file = input.files[0];
   if (!file) return;
-
   const status = document.getElementById('proforma-status');
   const zona = document.getElementById('proforma-zona');
   status.style.display = 'block';
-  status.textContent = '🔄 Leyendo proforma...';
+  status.style.color = 'var(--c-muted)';
   zona.style.borderColor = 'var(--c-orange)';
-
+  status.textContent = '🔄 Leyendo PDF...';
   try {
-    const esPDF = file.type === 'application/pdf';
-    let textoExtraido = '';
-
-    if (esPDF) {
-      // Extraer texto del PDF con pdf.js
-      status.textContent = '🔄 Extrayendo texto del PDF...';
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8 = new Uint8Array(arrayBuffer);
-
-      if (!window.pdfjsLib) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      }
-
-      const pdf = await window.pdfjsLib.getDocument({data: uint8}).promise;
-      const numPages = Math.min(pdf.numPages, 3); // máximo 3 páginas
-      for (let p = 1; p <= numPages; p++) {
-        const page = await pdf.getPage(p);
-        const tc = await page.getTextContent();
-        textoExtraido += tc.items.map(i => i.str).join(' ') + ' ';
-      }
-
-      if (!textoExtraido.trim()) throw new Error('No se pudo extraer texto del PDF');
-
-    } else {
-      // Para imágenes, convertir a base64 y enviar
-      textoExtraido = '[IMAGEN]' + await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+    // Cargar pdf.js
+    if (!window.pdfjsLib) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
       });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
-
+    // Extraer texto del PDF
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({data: new Uint8Array(arrayBuffer)}).promise;
+    let texto = '';
+    const pages = Math.min(pdf.numPages, 2);
+    for (let p = 1; p <= pages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      texto += tc.items.map(i => i.str).join(' ') + ' ';
+    }
+    if (!texto.trim()) throw new Error('No se pudo extraer texto del PDF');
     status.textContent = '🔄 Analizando con IA...';
-
-    // Enviar texto al GAS para que llame a Claude
-    // Tomar solo el inicio del documento donde están los datos clave
-    const textoClave = textoExtraido.substring(0, 3000);
-    const resultado = await callAGAS({
-      action: 'extraer_proforma',
-      texto: textoClave
-    });
-
-    if (!resultado || !resultado.ok) throw new Error(resultado?.error || 'Error en extracción');
-    const extraido = resultado.data;
-
-    // Rellenar formulario
-    let campos = 0;
-    if (extraido.ref) { document.getElementById('i-ref').value = extraido.ref; campos++; }
-    if (extraido.merc) { document.getElementById('i-merc').value = extraido.merc; campos++; }
-    if (extraido.factura) { document.getElementById('i-factura').value = extraido.factura; campos++; }
-    if (extraido.facturaMan) { document.getElementById('i-factura-mon').value = extraido.facturaMan; }
-    if (extraido.etd) { document.getElementById('i-etd').value = extraido.etd; campos++; }
-    if (extraido.eta) { document.getElementById('i-eta').value = extraido.eta; campos++; }
-    if (extraido.notas) { document.getElementById('i-notas').value = extraido.notas; campos++; }
-    if (extraido.prov) {
+    // Llamar al GAS
+    const resultado = await callAGAS('extraer_proforma', {texto: texto});
+    if (!resultado || !resultado.ok) throw new Error(resultado && resultado.error ? resultado.error : 'Error en extracción');
+    const d = resultado.data;
+    // Llenar campos con verificación null
+    let n = 0;
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) { el.value = val; return true; } return false; };
+    if (set('i-ref', d.ref)) n++;
+    if (set('i-merc', d.merc)) n++;
+    if (set('i-factura', d.factura)) n++;
+    set('i-factura-mon', d.facturaMan);
+    if (set('i-etd', d.etd)) n++;
+    if (set('i-eta', d.eta)) n++;
+    if (set('i-notas', d.notas)) n++;
+    if (d.prov) {
       const sel = document.getElementById('i-prov');
-      const match = Array.from(sel.options).find(o =>
-        o.value.toLowerCase().includes(extraido.prov.toLowerCase()) ||
-        extraido.prov.toLowerCase().includes(o.value.toLowerCase())
-      );
-      if (match) { sel.value = match.value; campos++; }
+      if (sel) {
+        const m = Array.from(sel.options).find(o => o.value.toLowerCase().includes(d.prov.toLowerCase()) || d.prov.toLowerCase().includes(o.value.toLowerCase()));
+        if (m) { sel.value = m.value; n++; }
+      }
     }
-
-    status.textContent = '✅ ' + campos + ' campos autocompletados. Revisa y ajusta lo necesario.';
+    status.textContent = '✅ ' + n + ' campos autocompletados. Revisa y ajusta lo necesario.';
     status.style.color = '#2ecc71';
     zona.style.borderColor = '#2ecc71';
-
   } catch(e) {
-    console.error('Error procesando proforma:', e);
-    status.textContent = '❌ ' + (e.message || 'No se pudo leer la proforma. Completa los campos manualmente.');
+    status.textContent = '❌ ' + (e.message || 'No se pudo leer. Completa manualmente.');
     status.style.color = '#e74c3c';
     zona.style.borderColor = '#e74c3c';
   }
-
   input.value = '';
 }
 
