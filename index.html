@@ -2955,20 +2955,19 @@ async function procesarProforma(input) {
   const status = document.getElementById('proforma-status');
   const zona = document.getElementById('proforma-zona');
   status.style.display = 'block';
-  status.textContent = '🔄 Leyendo proforma con IA...';
+  status.textContent = '🔄 Leyendo proforma...';
   zona.style.borderColor = 'var(--c-orange)';
 
   try {
-    let base64, mediaType;
     const esPDF = file.type === 'application/pdf';
+    let textoExtraido = '';
 
     if (esPDF) {
-      // Convertir PDF a imagen usando canvas
-      status.textContent = '🔄 Procesando PDF...';
+      // Extraer texto del PDF con pdf.js
+      status.textContent = '🔄 Extrayendo texto del PDF...';
       const arrayBuffer = await file.arrayBuffer();
       const uint8 = new Uint8Array(arrayBuffer);
-      
-      // Cargar pdf.js dinámicamente
+
       if (!window.pdfjsLib) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
@@ -2981,93 +2980,66 @@ async function procesarProforma(input) {
       }
 
       const pdf = await window.pdfjsLib.getDocument({data: uint8}).promise;
-      const page = await pdf.getPage(1);
-      const viewport = page.getViewport({scale: 1.5});
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
-      
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      base64 = dataUrl.split(',')[1];
-      mediaType = 'image/jpeg';
-      status.textContent = '🔄 Extrayendo datos con IA...';
+      const numPages = Math.min(pdf.numPages, 3); // máximo 3 páginas
+      for (let p = 1; p <= numPages; p++) {
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        textoExtraido += tc.items.map(i => i.str).join(' ') + '
+';
+      }
+
+      if (!textoExtraido.trim()) throw new Error('No se pudo extraer texto del PDF');
+
     } else {
-      base64 = await new Promise((resolve, reject) => {
+      // Para imágenes, convertir a base64 y enviar
+      textoExtraido = '[IMAGEN]' + await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      mediaType = file.type;
     }
 
-    // Llamar directamente a la API de Anthropic
-    const ANTHROPIC_KEY = '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';
-    const apiResp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: base64 }
-            },
-            {
-              type: 'text',
-              text: 'Extrae los datos de esta proforma/factura comercial. Responde SOLO con JSON valido sin markdown ni texto adicional: {"ref":"numero de orden o factura del proveedor","prov":"nombre del proveedor o empresa vendedora","merc":"descripcion corta de la mercancia max 60 caracteres","factura":"monto total numerico sin simbolos ni comas","facturaMan":"EUR o USD segun la moneda","etd":"fecha de envio en formato YYYY-MM-DD o vacio","eta":"fecha de entrega estimada en formato YYYY-MM-DD o vacio","notas":"informacion relevante adicional como incoterms peso etc"}'
-            }
-          ]
-        }]
-      })
+    status.textContent = '🔄 Analizando con IA...';
+
+    // Enviar texto al GAS para que llame a Claude
+    const resultado = await postAGAS({
+      action: 'extraer_proforma',
+      texto: textoExtraido.substring(0, 8000) // max 8000 chars
     });
 
-    if (!apiResp.ok) throw new Error('Error API: ' + apiResp.status);
-    const apiData = await apiResp.json();
-    const texto = apiData.content && apiData.content[0] && apiData.content[0].text;
-    if (!texto) throw new Error('Sin respuesta de IA');
-    const clean = texto.replace(/```json|```/g, '').trim();
-    const extraido = JSON.parse(clean);
+    if (!resultado || !resultado.ok) throw new Error(resultado?.error || 'Error en extracción');
+    const extraido = resultado.data;
 
-    // Rellenar formulario con los datos extraídos
-    let camposRellenados = 0;
-    if (extraido.ref) { document.getElementById('i-ref').value = extraido.ref; camposRellenados++; }
-    if (extraido.merc) { document.getElementById('i-merc').value = extraido.merc; camposRellenados++; }
-    if (extraido.factura) { document.getElementById('i-factura').value = extraido.factura; camposRellenados++; }
+    // Rellenar formulario
+    let campos = 0;
+    if (extraido.ref) { document.getElementById('i-ref').value = extraido.ref; campos++; }
+    if (extraido.merc) { document.getElementById('i-merc').value = extraido.merc; campos++; }
+    if (extraido.factura) { document.getElementById('i-factura').value = extraido.factura; campos++; }
     if (extraido.facturaMan) { document.getElementById('i-factura-mon').value = extraido.facturaMan; }
-    if (extraido.etd) { document.getElementById('i-etd').value = extraido.etd; camposRellenados++; }
-    if (extraido.eta) { document.getElementById('i-eta').value = extraido.eta; camposRellenados++; }
-    if (extraido.notas) { document.getElementById('i-notas').value = extraido.notas; camposRellenados++; }
-
-    // Intentar seleccionar el proveedor si coincide
+    if (extraido.etd) { document.getElementById('i-etd').value = extraido.etd; campos++; }
+    if (extraido.eta) { document.getElementById('i-eta').value = extraido.eta; campos++; }
+    if (extraido.notas) { document.getElementById('i-notas').value = extraido.notas; campos++; }
     if (extraido.prov) {
       const sel = document.getElementById('i-prov');
-      const opciones = Array.from(sel.options);
-      const match = opciones.find(o => o.value.toLowerCase().includes(extraido.prov.toLowerCase()) || extraido.prov.toLowerCase().includes(o.value.toLowerCase()));
-      if (match) { sel.value = match.value; camposRellenados++; }
+      const match = Array.from(sel.options).find(o =>
+        o.value.toLowerCase().includes(extraido.prov.toLowerCase()) ||
+        extraido.prov.toLowerCase().includes(o.value.toLowerCase())
+      );
+      if (match) { sel.value = match.value; campos++; }
     }
 
-    status.textContent = '✅ ' + camposRellenados + ' campos autocompletados. Revisa y ajusta lo que sea necesario.';
+    status.textContent = '✅ ' + campos + ' campos autocompletados. Revisa y ajusta lo necesario.';
     status.style.color = '#2ecc71';
     zona.style.borderColor = '#2ecc71';
 
   } catch(e) {
     console.error('Error procesando proforma:', e);
-    status.textContent = '❌ No se pudo leer la proforma. Completa los campos manualmente.';
+    status.textContent = '❌ ' + (e.message || 'No se pudo leer la proforma. Completa los campos manualmente.');
     status.style.color = '#e74c3c';
     zona.style.borderColor = '#e74c3c';
   }
 
-  // Limpiar input para permitir subir el mismo archivo de nuevo
   input.value = '';
 }
 
