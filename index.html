@@ -1039,6 +1039,16 @@ async function postAGAS(payload) {
   const blob = new Blob([JSON.stringify(payload)], {type: 'text/plain'});
   return fetch(SCRIPT_URL, {method: 'POST', mode: 'no-cors', body: blob});
 }
+
+async function callAGAS(payload) {
+  // Versión que puede leer la respuesta (para extraer_proforma)
+  const params = new URLSearchParams({
+    action: payload.action,
+    data: JSON.stringify(payload)
+  });
+  const res = await fetch(SCRIPT_URL + '?' + params.toString());
+  return res.json();
+}
 const ESTADOS=['Comprado','En tránsito','En aduana','Entregado'];
 const ESTADO_COLORS=['#888','#6fb3f5','#e74c3c','#2ecc71'];
 const ESTADO_EP=['ep-0','ep-1','ep-2','ep-3','ep-4'];
@@ -3002,9 +3012,9 @@ async function procesarProforma(input) {
     status.textContent = '🔄 Analizando con IA...';
 
     // Enviar texto al GAS para que llame a Claude
-    const resultado = await postAGAS({
+    const resultado = await callAGAS({
       action: 'extraer_proforma',
-      texto: textoExtraido.substring(0, 8000) // max 8000 chars
+      texto: textoExtraido.substring(0, 8000)
     });
 
     if (!resultado || !resultado.ok) throw new Error(resultado?.error || 'Error en extracción');
