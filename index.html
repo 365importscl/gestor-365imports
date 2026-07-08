@@ -1041,13 +1041,26 @@ async function postAGAS(payload) {
 }
 
 async function callAGAS(payload) {
-  // Versión que puede leer la respuesta (para extraer_proforma)
-  const params = new URLSearchParams({
-    action: payload.action,
-    data: JSON.stringify(payload)
-  });
-  const res = await fetch(SCRIPT_URL + '?' + params.toString());
-  return res.json();
+  // Usa fetch con cors usando un truco: enviar como form data
+  const form = new FormData();
+  form.append('payload', JSON.stringify(payload));
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {'Content-Type': 'text/plain'}
+    });
+    return res.json();
+  } catch(e) {
+    // Si falla por CORS, intentar via GET con texto corto
+    const textoCorto = payload.texto ? payload.texto.substring(0, 2000) : '';
+    const params = new URLSearchParams({
+      action: payload.action,
+      texto: textoCorto
+    });
+    const res2 = await fetch(SCRIPT_URL + '?' + params.toString());
+    return res2.json();
+  }
 }
 const ESTADOS=['Comprado','En tránsito','En aduana','Entregado'];
 const ESTADO_COLORS=['#888','#6fb3f5','#e74c3c','#2ecc71'];
@@ -3012,9 +3025,11 @@ async function procesarProforma(input) {
     status.textContent = '🔄 Analizando con IA...';
 
     // Enviar texto al GAS para que llame a Claude
+    // Tomar solo el inicio del documento donde están los datos clave
+    const textoClave = textoExtraido.substring(0, 3000);
     const resultado = await callAGAS({
       action: 'extraer_proforma',
-      texto: textoExtraido.substring(0, 8000)
+      texto: textoClave
     });
 
     if (!resultado || !resultado.ok) throw new Error(resultado?.error || 'Error en extracción');
