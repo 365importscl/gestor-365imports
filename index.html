@@ -3137,64 +3137,6 @@ async function subirArchivoDrive(file) {
 }
 
 
-// ══════════════════════════════════════════════════════════════
-// GOOGLE DRIVE OAUTH
-// ══════════════════════════════════════════════════════════════
-const GOOGLE_CLIENT_ID = '752427110842-hrvig2lgn33nkoenlg247gole2rdhqqd.apps.googleusercontent.com';
-const DRIVE_FOLDER_ID = '1yf7g9jtJBpZm7GHfquzDz2BRdYaNxXFq';
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
-let googleAccessToken = null;
-
-function obtenerTokenGoogle() {
-  return new Promise((resolve, reject) => {
-    if (googleAccessToken) { resolve(googleAccessToken); return; }
-    const client = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: DRIVE_SCOPE,
-      callback: (response) => {
-        if (response.error) { reject(new Error(response.error)); return; }
-        googleAccessToken = response.access_token;
-        // Token expira en 1 hora
-        setTimeout(() => { googleAccessToken = null; }, 3500 * 1000);
-        resolve(googleAccessToken);
-      }
-    });
-    client.requestAccessToken();
-  });
-}
-
-async function subirArchivoADrive(file) {
-  const token = await obtenerTokenGoogle();
-  // Crear metadata del archivo
-  const metadata = {
-    name: file.name,
-    parents: [DRIVE_FOLDER_ID]
-  };
-  const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-  form.append('file', file);
-  const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + token },
-    body: form
-  });
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error('Drive error: ' + (err.error && err.error.message || response.status));
-  }
-  const data = await response.json();
-  // Hacer el archivo accesible con link
-  await fetch('https://www.googleapis.com/drive/v3/files/' + data.id + '/permissions', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({role: 'reader', type: 'anyone'})
-  });
-  return 'https://drive.google.com/file/d/' + data.id + '/view?usp=sharing';
-}
-
 // Restaurar sesión si existe
 (function(){
   const usr = sessionStorage.getItem('usr');
