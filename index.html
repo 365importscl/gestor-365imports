@@ -984,34 +984,7 @@ input:focus,select:focus{border-color:var(--c-orange)}
         </select>
       </div>
     </div>
-    <hr class="divider">
-    <p style="font-size:11px;color:var(--c-orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Logística</p>
-    <div class="form-row">
-      <div class="form-group"><label>Peso real (kg)</label><input type="number" id="i-peso" value="0" min="0" step="0.01" placeholder="0.00" oninput="calcularCostoKg()"></div>
-      <div class="form-group"><label>Peso volumétrico (kg)</label><input type="number" id="i-peso-vol" value="0" min="0" step="0.01" placeholder="0.00" oninput="calcularCostoKg()"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Tarifa por kilo</label>
-        <div class="cost-input-wrap">
-          <input type="number" id="i-tarifa-kilo" value="0" min="0" step="0.01" placeholder="0.00" oninput="calcularCostoKg()">
-          <select id="i-tarifa-kilo-mon"><option value="USD">$ USD</option><option value="EUR">€ EUR</option></select>
-        </div>
-      </div>
-      <div class="form-group"><label>Días libres en destino</label><input type="number" id="i-dias-libres" value="0" min="0" step="1" placeholder="0"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Costo días extra</label>
-        <div class="cost-input-wrap">
-          <input type="number" id="i-costo-dias-extra" value="0" min="0" step="0.01" placeholder="0.00">
-          <select id="i-costo-dias-extra-mon"><option value="USD">$ USD</option><option value="EUR">€ EUR</option></select>
-        </div>
-      </div>
-      <div class="form-group" style="display:flex;align-items:flex-end">
-        <div style="background:var(--c-card);border:0.5px solid var(--c-border);border-radius:var(--rad);padding:8px 12px;font-size:12px;color:var(--c-muted);width:100%">
-          Costo/kg estimado: <strong id="costo-kg-calc" style="color:var(--c-orange)">—</strong>
-        </div>
-      </div>
-    </div>
+
     <hr class="divider">
     <p style="font-size:11px;color:var(--c-orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Fechas y notas</p>
     <div class="form-row">
@@ -1628,11 +1601,7 @@ function verDetalle(id){
         ${o.correos&&o.correos.length?`<div class="detalle-field" style="grid-column:1/-1"><span class="detalle-label">Notificar a</span><span class="detalle-val" style="color:var(--c-muted)">${o.correos.join(' · ')}</span></div>`:''}
         ${o.linksFactura&&o.linksFactura.length?`<div class="detalle-field" style="grid-column:1/-1"><span class="detalle-label">Facturas</span><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${o.linksFactura.map((l,i)=>`<a href="${l}" target="_blank" style="font-size:12px;color:var(--c-orange);text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(245,200,0,0.1);border-radius:var(--rad);border:0.5px solid rgba(245,200,0,0.3)">📄 Factura ${i+1} ↗</a>`).join('')}</div></div>`:''}
         ${o.linksComprobante&&o.linksComprobante.length?`<div class="detalle-field" style="grid-column:1/-1"><span class="detalle-label">Comprobantes</span><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${o.linksComprobante.map((l,i)=>`<a href="${l}" target="_blank" style="font-size:12px;color:#5dca8a;text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(46,204,113,0.1);border-radius:var(--rad);border:0.5px solid rgba(46,204,113,0.3)">✅ Comprobante ${i+1} ↗</a>`).join('')}</div></div>`:''}
-        ${o.peso?`<div class="detalle-field"><span class="detalle-label">Peso real</span><span class="detalle-val">${o.peso} kg</span></div>`:''}
-        ${o.pesoVol?`<div class="detalle-field"><span class="detalle-label">Peso volumétrico</span><span class="detalle-val">${o.pesoVol} kg</span></div>`:''}
-        ${o.tarifaKilo?`<div class="detalle-field"><span class="detalle-label">Tarifa por kilo</span><span class="detalle-val">${o.tarifaKiloMon==='USD'?'$':'€'}${o.tarifaKilo}/kg · Total: ${o.tarifaKiloMon==='USD'?'$':'€'}${(Math.max(o.peso||0,o.pesoVol||0)*o.tarifaKilo).toFixed(2)}</span></div>`:''}
-        ${o.diasLibres?`<div class="detalle-field"><span class="detalle-label">Días libres destino</span><span class="detalle-val">${o.diasLibres} días</span></div>`:''}
-        ${o.costoDiasExtra?`<div class="detalle-field"><span class="detalle-label">Costo días extra</span><span class="detalle-val">${o.costoDiasExtraMon==='USD'?'$':'€'}${o.costoDiasExtra}</span></div>`:'' }
+
         ${o.notas?`<div class="detalle-field" style="grid-column:1/-1"><span class="detalle-label">Notas</span><span class="detalle-val" style="color:var(--c-muted)">${o.notas}</span></div>`:''}
       </div>
       <div style="border-top:0.5px solid var(--c-border);padding-top:1rem;margin-bottom:1rem">
@@ -1820,14 +1789,7 @@ function abrirForm(id){
     document.getElementById('i-pago-general').value=o.pagoGeneral||'Pendiente';
     document.getElementById('i-pago-mercancia').value=o.pagoMercancia||'Pendiente';
     document.getElementById('i-pago-flete').value=o.pagoFlete||'Pendiente';
-    document.getElementById('i-peso').value=o.peso||0;
-    document.getElementById('i-peso-vol').value=o.pesoVol||0;
-    document.getElementById('i-tarifa-kilo').value=o.tarifaKilo||0;
-    document.getElementById('i-tarifa-kilo-mon').value=o.tarifaKiloMon||'USD';
-    document.getElementById('i-dias-libres').value=o.diasLibres||0;
-    document.getElementById('i-costo-dias-extra').value=o.costoDiasExtra||0;
-    document.getElementById('i-costo-dias-extra-mon').value=o.costoDiasExtraMon||'USD';
-    setTimeout(calcularCostoKg, 50);
+
     document.getElementById('i-merc').value=o.merc||'';
     linksFacturaTemp=[...(o.linksFactura||[])];
     linksComprobanteTemp=[...(o.linksComprobante||[])];
@@ -3049,11 +3011,21 @@ async function procesarProforma(input) {
     if (extraido.notas) { document.getElementById('i-notas').value = extraido.notas; campos++; }
     if (extraido.prov) {
       const sel = document.getElementById('i-prov');
-      const match = Array.from(sel.options).find(o =>
-        o.value.toLowerCase().includes(extraido.prov.toLowerCase()) ||
-        extraido.prov.toLowerCase().includes(o.value.toLowerCase())
-      );
-      if (match) { sel.value = match.value; campos++; }
+      if (sel) {
+        const match = Array.from(sel.options).find(o =>
+          o.value.toLowerCase().includes(extraido.prov.toLowerCase()) ||
+          extraido.prov.toLowerCase().includes(o.value.toLowerCase())
+        );
+        if (match) { sel.value = match.value; campos++; }
+      }
+    }
+    if (extraido.dest) {
+      const selDest = document.getElementById('i-dest');
+      if (selDest) { selDest.value = extraido.dest; campos++; }
+    }
+    if (extraido.tipo) {
+      const selTipo = document.getElementById('i-tipo');
+      if (selTipo) { selTipo.value = extraido.tipo; campos++; }
     }
 
     status.textContent = '✅ ' + campos + ' campos autocompletados. Revisa y ajusta lo necesario.';
