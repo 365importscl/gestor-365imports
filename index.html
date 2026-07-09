@@ -3077,6 +3077,28 @@ const GOOGLE_CLIENT_ID = '752427110842-hrvig2lgn33nkoenlg247gole2rdhqqd.apps.goo
 const DRIVE_FOLDER_ID = '1yf7g9jtJBpZm7GHfquzDz2BRdYaNxXFq';
 let driveAccessToken = null;
 
+async function conectarDrive() {
+  const btn = document.getElementById('btn-conectar-drive');
+  const btnCargar = document.getElementById('btn-cargar-proforma');
+  const status = document.getElementById('proforma-status');
+  status.style.display = 'block';
+  status.textContent = '🔄 Conectando con Google Drive...';
+  status.style.color = 'var(--c-muted)';
+  try {
+    await obtenerTokenDrive();
+    btn.textContent = '✅ Drive conectado';
+    btn.style.color = '#2ecc71';
+    btn.disabled = true;
+    btnCargar.disabled = false;
+    btnCargar.style.opacity = '1';
+    status.textContent = '✅ Google Drive conectado. Ahora puedes cargar la proforma.';
+    status.style.color = '#2ecc71';
+  } catch(e) {
+    status.textContent = '❌ No se pudo conectar con Drive: ' + e.message;
+    status.style.color = '#e74c3c';
+  }
+}
+
 async function obtenerTokenDrive() {
   return new Promise((resolve, reject) => {
     if (driveAccessToken) { resolve(driveAccessToken); return; }
