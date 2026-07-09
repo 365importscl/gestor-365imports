@@ -3060,6 +3060,21 @@ async function procesarProforma(input) {
     status.style.color = '#2ecc71';
     zona.style.borderColor = '#2ecc71';
 
+    // Subir PDF a Google Drive si está conectado
+    if (driveAccessToken) {
+      status.textContent = '🔄 Subiendo factura a Google Drive...';
+      try {
+        const link = await subirArchivoDrive(file);
+        linksFacturaTemp = linksFacturaTemp || [];
+        linksFacturaTemp.push(link);
+        renderLinksFacturaTags();
+        status.textContent = '✅ ' + campos + ' campos completados · Factura subida a Drive ✓';
+      } catch(driveErr) {
+        console.warn('No se pudo subir a Drive:', driveErr);
+        status.textContent = '✅ ' + campos + ' campos completados · Drive: ' + driveErr.message;
+      }
+    }
+
   } catch(e) {
     console.error('Error procesando proforma:', e);
     status.textContent = '❌ ' + (e.message || 'No se pudo leer la proforma. Completa los campos manualmente.');
