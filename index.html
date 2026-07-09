@@ -876,11 +876,12 @@ input:focus,select:focus{border-color:var(--c-orange)}
     </div>
     <!-- CARGA DE PROFORMA CON IA -->
     <div id="proforma-zona" style="margin-bottom:1.25rem;border:0.5px dashed var(--c-border);border-radius:var(--rad);padding:16px;text-align:center;transition:border-color 0.2s">
-      <input type="file" id="proforma-input" accept=".pdf,image/*" style="display:none" onchange="procesarProforma(this)">
-      <p style="font-size:12px;color:var(--c-muted);margin:0 0 8px">¿Tienes la proforma del proveedor?</p>
-      <button type="button" class="btn-ghost" onclick="document.getElementById('proforma-input').click()" style="font-size:12px">
-        📄 Cargar proforma y autocompletar
-      </button>
+      <input type="file" id="proforma-input" accept=".pdf" style="display:none" onchange="procesarProforma(this)">
+      <p style="font-size:12px;color:var(--c-muted);margin:0 0 10px">¿Tienes la proforma del proveedor?</p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button type="button" id="btn-conectar-drive" class="btn-ghost" onclick="conectarDrive()" style="font-size:12px">🔗 Conectar Google Drive</button>
+        <button type="button" id="btn-cargar-proforma" class="btn-ghost" onclick="document.getElementById('proforma-input').click()" style="font-size:12px;opacity:0.4" disabled>📄 Cargar proforma y autocompletar</button>
+      </div>
       <p id="proforma-status" style="font-size:11px;color:var(--c-muted);margin:8px 0 0;display:none"></p>
     </div>
 
@@ -3096,6 +3097,21 @@ async function conectarDrive() {
   } catch(e) {
     status.textContent = '❌ No se pudo conectar con Drive: ' + e.message;
     status.style.color = '#e74c3c';
+  }
+}
+
+async function conectarDrive() {
+  const btnC = document.getElementById('btn-conectar-drive');
+  const btnP = document.getElementById('btn-cargar-proforma');
+  const status = document.getElementById('proforma-status');
+  if(status){status.style.display='block';status.textContent='🔄 Conectando con Google Drive...';status.style.color='var(--c-muted)';}
+  try {
+    await obtenerTokenDrive();
+    if(btnC){btnC.textContent='✅ Drive conectado';btnC.style.color='#2ecc71';btnC.disabled=true;}
+    if(btnP){btnP.disabled=false;btnP.style.opacity='1';}
+    if(status){status.textContent='✅ Drive conectado. Ahora carga la proforma.';status.style.color='#2ecc71';}
+  } catch(e) {
+    if(status){status.textContent='❌ No se pudo conectar: '+e.message;status.style.color='#e74c3c';}
   }
 }
 
