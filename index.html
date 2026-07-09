@@ -1815,8 +1815,7 @@ function abrirForm(id){
     linksComprobanteTemp=[];
     renderLinksFacturaTags();
     renderLinksComprobanteTags();
-    ['i-factura','i-flete','i-aduana','i-otros','i-peso','i-peso-vol','i-tarifa-kilo','i-dias-libres','i-costo-dias-extra'].forEach(x=>document.getElementById(x).value='0');
-    ['i-tarifa-kilo-mon','i-costo-dias-extra-mon'].forEach(x=>document.getElementById(x).value='USD');
+    ['i-factura','i-flete','i-aduana','i-otros'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='0';});
     document.getElementById('i-eta').value='';
     document.getElementById('i-carrier').value='';
     document.getElementById('custom-url-group').style.display='none';
@@ -1860,13 +1859,7 @@ async function guardar(){
     pagoGeneral:document.getElementById('i-pago-general').value,
     pagoMercancia:document.getElementById('i-pago-mercancia').value,
     pagoFlete:document.getElementById('i-pago-flete').value,
-    peso:parseFloat(document.getElementById('i-peso').value)||0,
-    pesoVol:parseFloat(document.getElementById('i-peso-vol').value)||0,
-    tarifaKilo:parseFloat(document.getElementById('i-tarifa-kilo').value)||0,
-    tarifaKiloMon:document.getElementById('i-tarifa-kilo-mon').value,
-    diasLibres:parseInt(document.getElementById('i-dias-libres').value)||0,
-    costoDiasExtra:parseFloat(document.getElementById('i-costo-dias-extra').value)||0,
-    costoDiasExtraMon:document.getElementById('i-costo-dias-extra-mon').value};
+    peso:0,pesoVol:0,tarifaKilo:0,tarifaKiloMon:'USD',diasLibres:0,costoDiasExtra:0,costoDiasExtraMon:'USD'};
   let cambios=[];
   const dep=config.deptos||{};
   const todosCorreos=[...new Set([...(config.correos||[]),...(d.correos||[]),...Object.values(dep).flat()])];
