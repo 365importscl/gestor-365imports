@@ -1029,7 +1029,7 @@ async function callAGAS(payload) {
     return res.json();
   } catch(e) {
     // Si falla por CORS, intentar via GET con texto corto
-    const textoCorto = payload.texto ? payload.texto.substring(0, 2000) : '';
+    const textoCorto = payload.texto ? payload.texto.substring(0, 4000) : '';
     const params = new URLSearchParams({
       action: payload.action,
       texto: textoCorto
@@ -2983,9 +2983,9 @@ async function procesarProforma(input) {
     status.textContent = '🔄 Analizando con IA...';
 
     // Enviar texto al GAS para que llame a Claude
-    // Tomar inicio Y final del documento para capturar encabezado y totales
-    const inicio = textoExtraido.substring(0, 2000);
-    const final = textoExtraido.length > 2000 ? textoExtraido.substring(textoExtraido.length - 1000) : '';
+    // Inicio largo para proveedor/destino + final para totales
+    const inicio = textoExtraido.substring(0, 2500);
+    const final = textoExtraido.length > 2500 ? textoExtraido.substring(textoExtraido.length - 800) : '';
     const textoClave = inicio + (final ? ' ... ' + final : '');
     const resultado = await callAGAS({
       action: 'extraer_proforma',
