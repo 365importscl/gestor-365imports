@@ -2366,12 +2366,26 @@ function renderHistorial(){
 }
 
 async function archivarEntregadas(){
-  const entregadas=ordenes.filter(o=>o.estado==='Entregado');
-  if(!entregadas.length){alert('No hay órdenes con estado Entregado para archivar.');return;}
-  if(!confirm(`¿Archivar ${entregadas.length} orden(es) entregada(s)? Se moverán al historial y se eliminarán del gestor activo.`))return;
+  const todasEntregadas=ordenes.filter(o=>o.estado==='Entregado');
+  // Las órdenes con destino Madrid NO se archivan — se quedan en almacén Madrid
+  const entregadas=todasEntregadas.filter(o=>o.dest!=='Madrid');
+  const enMadrid=todasEntregadas.filter(o=>o.dest==='Madrid');
+  if(!entregadas.length){
+    if(enMadrid.length){
+      alert(`No hay órdenes para archivar.\n\n${enMadrid.length} orden(es) con destino Madrid permanecen en "En almacén Madrid" hasta ser despachadas.`);
+    } else {
+      alert('No hay órdenes con estado Entregado para archivar.');
+    }
+    return;
+  }
+  let msg = `¿Archivar ${entregadas.length} orden(es) entregada(s)?`;
+  if(enMadrid.length) msg += `\n\n(${enMadrid.length} orden(es) con destino Madrid NO se archivarán — permanecen en almacén Madrid.)`;
+  if(!confirm(msg))return;
   const fechaArchivo=new Date().toLocaleDateString('es-ES');
   const paraArchivar=entregadas.map(o=>({...o,fecha_archivo:fechaArchivo}));
-  ordenes=ordenes.filter(o=>o.estado!=='Entregado');
+  // Solo eliminar de activas las que SÍ se archivan (no las de Madrid)
+  const idsArchivar=new Set(entregadas.map(o=>o.id));
+  ordenes=ordenes.filter(o=>!idsArchivar.has(o.id));
   setStatus('loading','Archivando órdenes...');
   try{
     await postAGAS({action:'archivar',ordenes_archivo:paraArchivar,ordenes_activas:ordenes});
