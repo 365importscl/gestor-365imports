@@ -3009,15 +3009,18 @@ async function procesarProforma(input) {
     if (!resultado || !resultado.ok) throw new Error(resultado?.error || 'Error en extracción');
     const extraido = resultado.data;
 
-    // Rellenar formulario
+    // Rellenar formulario con verificacion null en cada campo
     let campos = 0;
-    if (extraido.ref) { document.getElementById('i-ref').value = extraido.ref; campos++; }
-    if (extraido.merc) { document.getElementById('i-merc').value = extraido.merc; campos++; }
-    if (extraido.factura) { document.getElementById('i-factura').value = extraido.factura; campos++; }
-    if (extraido.facturaMan) { document.getElementById('i-factura-mon').value = extraido.facturaMan; }
-    if (extraido.etd) { document.getElementById('i-etd').value = extraido.etd; campos++; }
-    if (extraido.eta) { document.getElementById('i-eta').value = extraido.eta; campos++; }
-    if (extraido.notas) { document.getElementById('i-notas').value = extraido.notas; campos++; }
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) { el.value = val; return true; } return false; };
+    if (set('i-ref', extraido.ref)) campos++;
+    if (set('i-merc', extraido.merc)) campos++;
+    if (set('i-factura', extraido.factura)) campos++;
+    set('i-factura-mon', extraido.facturaMan);
+    if (set('i-etd', extraido.etd)) campos++;
+    if (set('i-eta', extraido.eta)) campos++;
+    if (set('i-notas', extraido.notas)) campos++;
+    if (set('i-dest', extraido.dest)) campos++;
+    if (set('i-tipo', extraido.tipo)) campos++;
     if (extraido.prov) {
       const sel = document.getElementById('i-prov');
       if (sel) {
@@ -3027,14 +3030,6 @@ async function procesarProforma(input) {
         );
         if (match) { sel.value = match.value; campos++; }
       }
-    }
-    if (extraido.dest) {
-      const selDest = document.getElementById('i-dest');
-      if (selDest) { selDest.value = extraido.dest; campos++; }
-    }
-    if (extraido.tipo) {
-      const selTipo = document.getElementById('i-tipo');
-      if (selTipo) { selTipo.value = extraido.tipo; campos++; }
     }
 
     status.textContent = '✅ ' + campos + ' campos autocompletados. Revisa y ajusta lo necesario.';
