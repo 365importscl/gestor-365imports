@@ -2975,7 +2975,7 @@ async function procesarProforma(input) {
       }
 
       const pdf = await window.pdfjsLib.getDocument({data: uint8}).promise;
-      const numPages = Math.min(pdf.numPages, 3); // máximo 3 páginas
+      const numPages = Math.min(pdf.numPages, 7); // hasta 7 páginas para documentos largos
       for (let p = 1; p <= numPages; p++) {
         const page = await pdf.getPage(p);
         const tc = await page.getTextContent();
@@ -2997,9 +2997,9 @@ async function procesarProforma(input) {
     status.textContent = '🔄 Analizando con IA...';
 
     // Enviar texto al GAS para que llame a Claude
-    // Inicio largo para proveedor/destino + final para totales
-    const inicio = textoExtraido.substring(0, 2500);
-    const final = textoExtraido.length > 2500 ? textoExtraido.substring(textoExtraido.length - 800) : '';
+    // Inicio para proveedor/destino + final para totales (Grand Total suele estar al final)
+    const inicio = textoExtraido.substring(0, 2000);
+    const final = textoExtraido.length > 2000 ? textoExtraido.substring(textoExtraido.length - 1500) : '';
     const textoClave = inicio + (final ? ' ... ' + final : '');
     const resultado = await callAGAS({
       action: 'extraer_proforma',
