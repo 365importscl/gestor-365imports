@@ -1045,6 +1045,7 @@ const ESTADO_COLORS=['#888','#6fb3f5','#e74c3c','#2ecc71'];
 const ESTADO_EP=['ep-0','ep-1','ep-2','ep-3','ep-4'];
 
 let ordenes=[],nid=1,detalleId=null,editId=null,delId=null;
+let maxOrdenesConocidas=0; // protección anti-borrado accidental
 let config={
   correos:[],
   proveedores:['Colnago','DMT','ABUS','Gobik','Pas Normal Studios','BMC'],
@@ -1224,6 +1225,8 @@ async function cargarDesdeSheets(silencioso=false){
       }
       estadosAnteriores={};
       ordenes.forEach(o=>estadosAnteriores[o.id]=o.estado);
+      // Actualizar máximo conocido para protección anti-borrado
+      if(ordenes.length > maxOrdenesConocidas) maxOrdenesConocidas = ordenes.length;
       if(!silencioso) setStatus('ok','Sincronizado · '+ordenes.length+' órdenes · '+hora());
       else setStatus('ok','Auto-sync · '+ordenes.length+' órdenes · '+hora());
     }else{ordenes=[];setStatus('ok','Conectado · Hoja vacía — agrega tu primera orden');}
@@ -1233,6 +1236,12 @@ async function cargarDesdeSheets(silencioso=false){
 }
 
 async function guardarEnSheets(cambios,correosOverride){
+  // Protección: no guardar si tenemos significativamente menos órdenes que antes
+  if(maxOrdenesConocidas > 3 && ordenes.length < maxOrdenesConocidas * 0.5) {
+    console.warn('⚠️ Guardado bloqueado: ' + ordenes.length + ' órdenes vs ' + maxOrdenesConocidas + ' conocidas. Sincroniza primero.');
+    setStatus('err', '⚠️ Guardado bloqueado por seguridad. Sincroniza primero para verificar los datos.');
+    return;
+  }
   const correosEnvio=correosOverride||config.correos;
   // Registrar log de cambios (no bloquea el guardado principal)
   if(cambios && cambios.length > 0){
