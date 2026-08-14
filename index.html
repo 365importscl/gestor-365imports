@@ -481,6 +481,8 @@ input:focus,select:focus{border-color:var(--c-orange)}
           <th style="width:85px">Flete</th>
           <th style="width:85px">ETD</th>
           <th style="width:85px">ETA</th>
+          <th style="width:80px;text-align:right">Días</th>
+          <th style="width:120px">Courier</th>
           <th style="width:100px">Archivado</th>
         </tr></thead>
         <tbody id="tbody-historial"></tbody>
@@ -1270,6 +1272,19 @@ function iniciarAutoSync(){
 function fmtNum(val){return Number(val).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtMon(val,mon){return(mon==='USD'?'$':'€')+fmtNum(val);}
 function renderTodo(){renderDashboard();renderTabla();}
+
+function filtrarPorDestino(dest) {
+  // Cambiar a pestaña de órdenes y filtrar por destino
+  const btnOrdenes = document.querySelector('.tab-btn[onclick*="ordenes"]');
+  cambiarTab('ordenes', btnOrdenes);
+  const sel = document.getElementById('f-dest-fil');
+  if (sel) { sel.value = dest; renderTabla(); }
+  // Scroll a la tabla
+  setTimeout(() => {
+    const tabOrdenes = document.getElementById('tab-ordenes');
+    if (tabOrdenes) tabOrdenes.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 100);
+}
 function poblarSelectProv(val){
   const sel=document.getElementById('i-prov');
   sel.innerHTML=config.proveedores.map(p=>`<option value="${p}" ${p===val?'selected':''}>${p}</option>`).join('');
@@ -1305,8 +1320,8 @@ function renderDashboard(){
   document.getElementById('dash-kpis').innerHTML=`
     <div class="dash-kpi"><div class="dash-kpi-label">Total órdenes</div><div class="dash-kpi-val">${total}</div><div class="dash-kpi-sub">${enCurso} en curso · ${entregadas} entregadas</div></div>
 
-    <div class="dash-kpi"><div class="dash-kpi-label">Venezuela</div><div class="dash-kpi-val" style="color:#f09040">${ven}</div><div class="dash-kpi-sub">${Math.round(ven/total*100)||0}% del total</div></div>
-    <div class="dash-kpi"><div class="dash-kpi-label">Chile</div><div class="dash-kpi-val" style="color:#c990f0">${chi}</div><div class="dash-kpi-sub">${Math.round(chi/total*100)||0}% del total</div></div>
+    <div class="dash-kpi" onclick="filtrarPorDestino('Venezuela')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="dash-kpi-label">Venezuela</div><div class="dash-kpi-val" style="color:#f09040">${ven}</div><div class="dash-kpi-sub">${Math.round(ven/total*100)||0}% · Ver órdenes →</div></div>
+    <div class="dash-kpi" onclick="filtrarPorDestino('Chile')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="dash-kpi-label">Chile</div><div class="dash-kpi-val" style="color:#c990f0">${chi}</div><div class="dash-kpi-sub">${Math.round(chi/total*100)||0}% · Ver órdenes →</div></div>
     <div class="dash-kpi"><div class="dash-kpi-label">Facturado EUR</div><div class="dash-kpi-val" style="font-size:18px">${fmtMon(factEUR,'EUR')}</div><div class="dash-kpi-sub">Total acumulado</div></div>
     <div class="dash-kpi"><div class="dash-kpi-label">Facturado USD</div><div class="dash-kpi-val" style="font-size:18px;color:#5dca8a">${fmtMon(factUSD,'USD')}</div><div class="dash-kpi-sub">Total acumulado</div></div>
   `;
@@ -2342,12 +2357,20 @@ function renderHistorial(){
     <tr>
       <td style="font-weight:500;color:var(--c-orange)">${o.ref||'—'}</td>
       <td style="color:var(--c-muted)">${o.prov||'—'}</td>
-      <td><span class="badge ${o.tipo==='Aérea'?'b-aerea':'b-maritima'}">${o.tipo||'—'}</span></td>
+      <td><span class="badge ${o.tipo==='Aérea'?'b-aerea':'b-maritima'}">${o.tipo||'—'}</span>${o.carrier==='klog'?'<span style="margin-left:4px;font-size:10px;background:rgba(111,179,245,0.15);color:#6fb3f5;padding:2px 6px;border-radius:10px">Klog</span>':''}</td>
       <td><span class="badge ${o.dest==='Venezuela'?'b-venezuela':o.dest==='Madrid'?'b-madrid':'b-chile'}">${o.dest||'—'}</span></td>
       <td style="color:var(--c-orange)">${fmtMon(parseFloat(o.factura)||0,o.facturaMan||'EUR')}</td>
       <td style="color:var(--c-muted)">${fmtMon(parseFloat(o.flete)||0,o.fleteMan||'EUR')}</td>
       <td style="color:var(--c-muted)">${o.etd||'—'}</td>
       <td style="color:var(--c-muted)">${o.eta||'—'}</td>
+      <td style="color:var(--c-text);text-align:right">${(()=>{
+        if(!o.etd||!o.eta)return '—';
+        const d1=new Date(o.etd),d2=new Date(o.eta);
+        if(isNaN(d1)||isNaN(d2))return '—';
+        const dias=Math.round((d2-d1)/(1000*60*60*24));
+        return dias>0?dias+'d':'—';
+      })()}</td>
+      <td style="color:var(--c-muted);font-size:12px">${o.carrier||o.doc?`${o.carrier||''}${o.doc?' · '+o.doc:''}`:' —'}</td>
       <td style="color:var(--c-sub);font-size:11px">${o.fecha_archivo||'—'}</td>
     </tr>`).join('');
 
