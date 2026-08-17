@@ -238,7 +238,8 @@ input:focus,select:focus{border-color:var(--c-orange)}
       <div id="export-menu" style="display:none;position:absolute;top:110%;right:0;background:var(--c-dark);border:0.5px solid var(--c-border);border-radius:var(--rad);min-width:200px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.3)">
         <button onclick="exportarCSV();toggleExportMenu()" style="width:100%;text-align:left;padding:10px 16px;font-size:13px;background:none;border:none;color:var(--c-text);cursor:pointer;border-bottom:0.5px solid var(--c-border)" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background='none'">📦 Exportar órdenes</button>
         <button onclick="exportarPipelineCSV();toggleExportMenu()" style="width:100%;text-align:left;padding:10px 16px;font-size:13px;background:none;border:none;color:var(--c-text);cursor:pointer;border-bottom:0.5px solid var(--c-border)" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background='none'">📋 Exportar solicitudes</button>
-        <button onclick="exportarHistorialCSV();toggleExportMenu()" style="width:100%;text-align:left;padding:10px 16px;font-size:13px;background:none;border:none;color:var(--c-text);cursor:pointer" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background='none'">🗂 Exportar historial</button>
+        <button onclick="exportarHistorialCSV();toggleExportMenu()" style="width:100%;text-align:left;padding:10px 16px;font-size:13px;background:none;border:none;color:var(--c-text);cursor:pointer;border-bottom:0.5px solid var(--c-border)" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background='none'">🗂 Exportar historial</button>
+        <button onclick="generarReporte();toggleExportMenu()" style="width:100%;text-align:left;padding:10px 16px;font-size:13px;background:none;border:none;color:#F5C800;cursor:pointer;font-weight:500" onmouseover="this.style.background='var(--c-card)'" onmouseout="this.style.background='none'">📊 Generar reporte ejecutivo</button>
       </div>
     </div>
     <button class="btn-ghost" onclick="archivarEntregadas()" style="color:#5dca8a;border-color:rgba(46,204,113,0.3)">📦 Archivar entregadas</button>
@@ -3197,6 +3198,214 @@ async function subirArchivoDrive(file) {
   return 'https://drive.google.com/file/d/' + data.id + '/view?usp=sharing';
 }
 
+
+
+// ══════════════════════════════════════════════════════════════
+// REPORTE EJECUTIVO
+// ══════════════════════════════════════════════════════════════
+async function generarReporte() {
+  setStatus('loading', 'Generando reporte...');
+  try {
+    const fmt = (n, mon) => (mon==='USD'?'$':'€') + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const hoy = new Date().toLocaleDateString('es-VE', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    
+    // Agrupar órdenes por estado
+    const enMadrid = ordenes.filter(o => (o.dest==='Madrid' && o.estado==='Entregado') || o.estado==='En Madrid');
+    const activas = ordenes.filter(o => !enMadrid.includes(o) && o.estado !== 'Entregado');
+    
+    const grupos = [
+      { titulo: 'Comprado', color: '#6fb3f5', bgColor: 'rgba(111,179,245,0.1)', items: activas.filter(o=>o.estado==='Comprado') },
+      { titulo: 'En tránsito', color: '#F5C800', bgColor: 'rgba(245,200,0,0.1)', items: activas.filter(o=>o.estado==='En tránsito') },
+      { titulo: 'En aduana', color: '#e67e22', bgColor: 'rgba(230,126,34,0.1)', items: activas.filter(o=>o.estado==='En aduana') },
+      { titulo: 'En almacén Madrid', color: '#2ecc71', bgColor: 'rgba(46,204,113,0.1)', items: enMadrid },
+    ];
+
+    // Totales
+    const totalEUR = activas.filter(o=>o.facturaMan==='EUR').reduce((s,o)=>s+(parseFloat(o.factura)||0),0) +
+                     enMadrid.filter(o=>o.facturaMan==='EUR').reduce((s,o)=>s+(parseFloat(o.factura)||0),0);
+    const totalUSD = activas.filter(o=>o.facturaMan==='USD').reduce((s,o)=>s+(parseFloat(o.factura)||0),0) +
+                     enMadrid.filter(o=>o.facturaMan==='USD').reduce((s,o)=>s+(parseFloat(o.factura)||0),0);
+    const venCount = [...activas,...enMadrid].filter(o=>o.dest==='Venezuela').length;
+    const chiCount = [...activas,...enMadrid].filter(o=>o.dest==='Chile').length;
+
+    // Solicitudes pendientes
+    const solCotizadas = pipeline.filter(s=>s.estado==='Cotizada');
+    const solAprobadas = pipeline.filter(s=>s.estado==='Aprobado');
+
+    const fmtMon = (n,mon) => (mon==='USD'?'$':'€')+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    const tablaGrupo = (items) => {
+      if (!items.length) return '<p style="padding:12px 16px;font-size:13px;color:#aaa;margin:0">Sin órdenes en este estado</p>';
+      return '<table width="100%" cellpadding="0" cellspacing="0"><tr style="background:#f9f9f9">' +
+        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Ref.</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Proveedor</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Mercancía</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Destino</th>' +
+        '<th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Factura</th>' +
+        '<th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">ETA</th>' +
+        '</tr>' +
+        items.map((o,i) => `<tr style="background:${i%2===0?'#fff':'#fafafa'}">
+          <td style="padding:9px 12px;font-size:12px;font-weight:600;color:#1a1a1a;border-top:1px solid #f0f0f0">${o.ref||'—'}</td>
+          <td style="padding:9px 12px;font-size:12px;color:#333;border-top:1px solid #f0f0f0">${o.prov||'—'}</td>
+          <td style="padding:9px 12px;font-size:11px;color:#666;border-top:1px solid #f0f0f0;max-width:160px">${o.merc||'—'}</td>
+          <td style="padding:9px 12px;border-top:1px solid #f0f0f0"><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500;background:${o.dest==='Venezuela'?'rgba(245,200,0,0.15)':'rgba(180,120,240,0.15)'};color:${o.dest==='Venezuela'?'#8B6F00':'#9b59b6'}">${o.dest||'—'}</span></td>
+          <td style="padding:9px 12px;font-size:12px;font-weight:500;color:#1a1a1a;text-align:right;border-top:1px solid #f0f0f0">${o.factura?fmtMon(o.factura,o.facturaMan):'—'}</td>
+          <td style="padding:9px 12px;font-size:11px;color:#888;text-align:right;border-top:1px solid #f0f0f0">${o.eta||'—'}</td>
+        </tr>`).join('') + '</table>';
+    };
+
+    const tablaSolicitudes = (items, tipo) => {
+      if (!items.length) return '<p style="padding:12px 16px;font-size:13px;color:#aaa;margin:0">Sin solicitudes</p>';
+      const colorTipo = tipo==='Aprobado' ? '#2ecc71' : '#F5C800';
+      return '<table width="100%" cellpadding="0" cellspacing="0"><tr style="background:#f9f9f9">' +
+        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Proveedor</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Producto</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Destino</th>' +
+        '<th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Presupuesto</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Estado</th>' +
+        '</tr>' +
+        items.map((s,i) => `<tr style="background:${i%2===0?'#fff':'#fafafa'}">
+          <td style="padding:9px 12px;font-size:12px;font-weight:600;color:#1a1a1a;border-top:1px solid #f0f0f0">${s.prov||'—'}</td>
+          <td style="padding:9px 12px;font-size:11px;color:#555;border-top:1px solid #f0f0f0;max-width:180px">${s.producto||'—'}</td>
+          <td style="padding:9px 12px;border-top:1px solid #f0f0f0"><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500;background:${s.dest==='Venezuela'?'rgba(245,200,0,0.15)':'rgba(180,120,240,0.15)'};color:${s.dest==='Venezuela'?'#8B6F00':'#9b59b6'}">${s.dest||'—'}</span></td>
+          <td style="padding:9px 12px;font-size:12px;font-weight:500;text-align:right;border-top:1px solid #f0f0f0">${s.presupuesto?fmtMon(s.presupuesto,s.presupuestoMon):'—'}</td>
+          <td style="padding:9px 12px;border-top:1px solid #f0f0f0"><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500;background:${colorTipo}22;color:${colorTipo}">${s.estado}</span></td>
+        </tr>`).join('') + '</table>';
+    };
+
+    const html = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<style>
+  body{margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif}
+  .wrap{max-width:700px;margin:30px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+  .header{background:#1a1a1a;padding:32px 40px;text-align:center}
+  .header img{width:70px;height:70px;margin-bottom:12px}
+  .header h1{margin:0;color:#fff;font-size:22px;font-weight:700}
+  .header p{margin:4px 0 0;color:#999;font-size:12px;text-transform:uppercase;letter-spacing:2px}
+  .banner{background:#F5C800;padding:14px 40px;text-align:center}
+  .banner p{margin:0;color:#0a0a0a;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+  .body{padding:32px 40px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+  .kpi{background:#f9f9f9;border-radius:8px;padding:14px 12px;text-align:center;border:1px solid #eee}
+  .kpi-val{font-size:24px;font-weight:700;color:#1a1a1a;margin-bottom:2px}
+  .kpi-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px}
+  .kpi-sub{font-size:11px;color:#bbb;margin-top:2px}
+  .seccion{margin-bottom:24px;border:1px solid #f0f0f0;border-radius:8px;overflow:hidden}
+  .seccion-header{padding:12px 16px;display:flex;align-items:center;gap:10px}
+  .seccion-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .seccion-titulo{font-size:13px;font-weight:700;color:#1a1a1a}
+  .seccion-count{margin-left:auto;font-size:11px;color:#888;background:#f0f0f0;padding:2px 8px;border-radius:10px}
+  .totales{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+  .total-box{background:#fffbe6;border:1px solid #F5C800;border-radius:8px;padding:16px;text-align:center}
+  .total-val{font-size:20px;font-weight:700;color:#8B6F00}
+  .total-label{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+  .footer{background:#1a1a1a;padding:20px 40px;text-align:center}
+  .footer p{margin:0;color:#F5C800;font-size:13px;font-weight:700}
+  .footer small{display:block;margin-top:4px;color:#444;font-size:10px}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="header">
+    <img src="https://www.365imports.cl/wp-content/uploads/2024/07/LOGO-BLANCO-365-1024x1024.png">
+    <h1>365 IMPORTS</h1>
+    <p>Reporte Ejecutivo de Importaciones</p>
+  </div>
+  <div class="banner"><p>Estado operativo · ${hoy}</p></div>
+  <div class="body">
+
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi-val">${activas.length + enMadrid.length}</div>
+        <div class="kpi-label">Órdenes activas</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-val" style="color:#f09040">${venCount}</div>
+        <div class="kpi-label">Venezuela</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-val" style="color:#c990f0">${chiCount}</div>
+        <div class="kpi-label">Chile</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-val" style="color:#F5C800">${solAprobadas.length + solCotizadas.length}</div>
+        <div class="kpi-label">Solicitudes</div>
+        <div class="kpi-sub">${solAprobadas.length} aprobadas</div>
+      </div>
+    </div>
+
+    <!-- Totales financieros -->
+    <div class="totales">
+      <div class="total-box">
+        <div class="total-val">€${totalEUR.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div class="total-label">Total comprometido EUR</div>
+      </div>
+      <div class="total-box">
+        <div class="total-val">$${totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div class="total-label">Total comprometido USD</div>
+      </div>
+    </div>
+
+    <!-- Solicitudes aprobadas -->
+    ${solAprobadas.length ? `
+    <div class="seccion">
+      <div class="seccion-header" style="background:rgba(46,204,113,0.08)">
+        <div class="seccion-dot" style="background:#2ecc71"></div>
+        <span class="seccion-titulo">Solicitudes Aprobadas — Pendientes de Ejecutar</span>
+        <span class="seccion-count">${solAprobadas.length}</span>
+      </div>
+      ${tablaSolicitudes(solAprobadas,'Aprobado')}
+    </div>` : ''}
+
+    <!-- Solicitudes cotizadas -->
+    ${solCotizadas.length ? `
+    <div class="seccion">
+      <div class="seccion-header" style="background:rgba(245,200,0,0.08)">
+        <div class="seccion-dot" style="background:#F5C800"></div>
+        <span class="seccion-titulo">Solicitudes Cotizadas — Pendientes de Aprobación</span>
+        <span class="seccion-count">${solCotizadas.length}</span>
+      </div>
+      ${tablaSolicitudes(solCotizadas,'Cotizada')}
+    </div>` : ''}
+
+    <!-- Órdenes por estado -->
+    ${grupos.map(g => g.items.length ? `
+    <div class="seccion">
+      <div class="seccion-header" style="background:${g.bgColor}">
+        <div class="seccion-dot" style="background:${g.color}"></div>
+        <span class="seccion-titulo">${g.titulo}</span>
+        <span class="seccion-count">${g.items.length}</span>
+      </div>
+      ${tablaGrupo(g.items)}
+    </div>` : '').join('')}
+
+  </div>
+  <div class="footer">
+    <p>365 IMPORTS</p>
+    <small>Reporte generado automáticamente · Gestor Logístico · ${new Date().toLocaleString('es-VE')}</small>
+  </div>
+</div>
+</body></html>`;
+
+    // Abrir reporte en nueva ventana
+    const ventana = window.open('', '_blank');
+    ventana.document.write(html);
+    ventana.document.close();
+
+    // Mandar por correo
+    setStatus('loading', 'Enviando reporte por correo...');
+    await postAGAS({
+      action: 'enviar_reporte_ejecutivo',
+      html: html,
+      asunto: '365 Imports · Reporte Ejecutivo — ' + new Date().toLocaleDateString('es-VE')
+    });
+
+    setStatus('ok', 'Reporte generado y enviado por correo · ' + hora());
+  } catch(e) {
+    console.error('Error generando reporte:', e);
+    setStatus('err', 'Error generando el reporte.');
+  }
+}
 
 // Restaurar sesión si existe
 (function(){
