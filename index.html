@@ -3210,6 +3210,8 @@ async function subirArchivoDrive(file) {
 async function generarReporte() {
   setStatus('loading', 'Generando reporte...');
   try {
+    // Cargar pipeline si no está cargado
+    if (!pipeline.length) await cargarPipeline();
     const fmtMon = (n, mon) => (mon==='USD'?'$':'€') + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
     const hoy = new Date().toLocaleDateString('es-VE', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
 
@@ -3260,6 +3262,10 @@ async function generarReporte() {
     const estadoColor = { 'Comprado':'#6fb3f5','En tránsito':'#F5C800','En aduana':'#e67e22','En almacén Madrid':'#2ecc71','Entregado':'#2ecc71' };
     const estadoBg = { 'Comprado':'rgba(111,179,245,0.1)','En tránsito':'rgba(245,200,0,0.1)','En aduana':'rgba(230,126,34,0.1)','En almacén Madrid':'rgba(46,204,113,0.1)','Entregado':'rgba(46,204,113,0.1)' };
 
+    const badgePago = (v) => {
+      const pagado = v==='Pagado'||v==='Anticipo pagado';
+      return `<span style="padding:2px 7px;border-radius:10px;font-size:9px;font-weight:500;background:${pagado?'rgba(46,204,113,0.15)':'rgba(231,76,60,0.12)'};color:${pagado?'#27ae60':'#e74c3c'}">${v||'Pendiente'}</span>`;
+    };
     const tablaOrdenes = (items) => {
       if (!items.length) return '';
       return `<table width="100%" cellpadding="0" cellspacing="0">
@@ -3268,13 +3274,20 @@ async function generarReporte() {
           <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Proveedor</th>
           <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Mercancía</th>
           <th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Monto</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Pagos</th>
           <th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">ETA</th>
         </tr>` +
         items.map((o,i) => `<tr style="background:${i%2===0?'#fff':'#fafafa'}">
           <td style="padding:9px 12px;font-size:12px;font-weight:600;color:#1a1a1a;border-top:1px solid #f0f0f0">${o.ref||'—'}</td>
           <td style="padding:9px 12px;font-size:12px;color:#333;border-top:1px solid #f0f0f0">${o.prov||'—'}</td>
-          <td style="padding:9px 12px;font-size:11px;color:#666;border-top:1px solid #f0f0f0;max-width:180px">${o.merc||'—'}</td>
-          <td style="padding:9px 12px;font-size:12px;font-weight:500;color:#1a1a1a;text-align:right;border-top:1px solid #f0f0f0">${o.factura?fmtMon(o.factura,o.facturaMan):'—'}</td>
+          <td style="padding:9px 12px;font-size:11px;color:#666;border-top:1px solid #f0f0f0;max-width:160px">${o.merc||'—'}</td>
+          <td style="padding:9px 12px;font-size:12px;font-weight:500;color:#1a1a1a;text-align:right;border-top:1px solid #f0f0f0;white-space:nowrap">${o.factura?fmtMon(o.factura,o.facturaMan):'—'}</td>
+          <td style="padding:9px 12px;border-top:1px solid #f0f0f0;text-align:center">
+            <div style="font-size:9px;color:#aaa;margin-bottom:2px">Mercancía</div>
+            ${badgePago(o.pagoMercancia)}
+            <div style="font-size:9px;color:#aaa;margin:3px 0 2px">Flete</div>
+            ${badgePago(o.pagoFlete)}
+          </td>
           <td style="padding:9px 12px;font-size:11px;color:#888;text-align:right;border-top:1px solid #f0f0f0;white-space:nowrap">${o.eta||'—'}</td>
         </tr>`).join('') +
         `<tr style="background:#f9f9f9">
