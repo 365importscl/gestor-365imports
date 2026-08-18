@@ -1238,9 +1238,10 @@ async function cargarDesdeSheets(silencioso=false){
 
 async function guardarEnSheets(cambios,correosOverride){
   // Protección: no guardar si tenemos significativamente menos órdenes que antes
-  if(maxOrdenesConocidas > 3 && ordenes.length < maxOrdenesConocidas * 0.5) {
+  if(maxOrdenesConocidas > 3 && ordenes.length < maxOrdenesConocidas * 0.7) {
     console.warn('⚠️ Guardado bloqueado: ' + ordenes.length + ' órdenes vs ' + maxOrdenesConocidas + ' conocidas. Sincroniza primero.');
     setStatus('err', '⚠️ Guardado bloqueado por seguridad. Sincroniza primero para verificar los datos.');
+    iniciarAutoSync();
     return;
   }
   const correosEnvio=correosOverride||config.correos;
@@ -1724,7 +1725,10 @@ async function cambiarEstado(id,nuevoEstado){
     linksComprobante:o.linksComprobante||[],
     correosEspeciales:correosEspeciales
   }]:[];
+  // Pausar autoSync para evitar conflicto durante el guardado
+  if(autoSyncInterval){clearInterval(autoSyncInterval);autoSyncInterval=null;}
   await guardarEnSheets(cambios,correosFinales);
+  iniciarAutoSync();
 }
 
 function renderMadrid(){
