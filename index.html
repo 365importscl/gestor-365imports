@@ -3210,70 +3210,119 @@ async function subirArchivoDrive(file) {
 async function generarReporte() {
   setStatus('loading', 'Generando reporte...');
   try {
-    const fmt = (n, mon) => (mon==='USD'?'$':'€') + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const fmtMon = (n, mon) => (mon==='USD'?'$':'€') + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
     const hoy = new Date().toLocaleDateString('es-VE', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-    
-    // Agrupar órdenes por estado
+
+    // Órdenes activas (excluir entregadas y las de Madrid)
     const enMadrid = ordenes.filter(o => (o.dest==='Madrid' && o.estado==='Entregado') || o.estado==='En Madrid');
     const activas = ordenes.filter(o => !enMadrid.includes(o) && o.estado !== 'Entregado');
-    
-    const grupos = [
-      { titulo: 'Comprado', color: '#6fb3f5', bgColor: 'rgba(111,179,245,0.1)', items: activas.filter(o=>o.estado==='Comprado') },
-      { titulo: 'En tránsito', color: '#F5C800', bgColor: 'rgba(245,200,0,0.1)', items: activas.filter(o=>o.estado==='En tránsito') },
-      { titulo: 'En aduana', color: '#e67e22', bgColor: 'rgba(230,126,34,0.1)', items: activas.filter(o=>o.estado==='En aduana') },
-      { titulo: 'En almacén Madrid', color: '#2ecc71', bgColor: 'rgba(46,204,113,0.1)', items: enMadrid },
+
+    // Solicitudes
+    const solAprobadas = pipeline.filter(s => s.estado==='Aprobado');
+    const solCotizadas = pipeline.filter(s => s.estado==='Cotizada');
+
+    // Totales reales — órdenes activas + solicitudes aprobadas
+    const todasEUR = [
+      ...activas.filter(o=>o.facturaMan==='EUR'),
+      ...enMadrid.filter(o=>o.facturaMan==='EUR'),
+      ...solAprobadas.filter(s=>s.presupuestoMon==='EUR')
     ];
+    const todasUSD = [
+      ...activas.filter(o=>o.facturaMan==='USD'),
+      ...enMadrid.filter(o=>o.facturaMan==='USD'),
+      ...solAprobadas.filter(s=>s.presupuestoMon==='USD')
+    ];
+    const totalEUR = todasEUR.reduce((s,o)=>s+(parseFloat(o.factura||o.presupuesto)||0),0);
+    const totalUSD = todasUSD.reduce((s,o)=>s+(parseFloat(o.factura||o.presupuesto)||0),0);
 
-    // Totales
-    const totalEUR = activas.filter(o=>o.facturaMan==='EUR').reduce((s,o)=>s+(parseFloat(o.factura)||0),0) +
-                     enMadrid.filter(o=>o.facturaMan==='EUR').reduce((s,o)=>s+(parseFloat(o.factura)||0),0);
-    const totalUSD = activas.filter(o=>o.facturaMan==='USD').reduce((s,o)=>s+(parseFloat(o.factura)||0),0) +
-                     enMadrid.filter(o=>o.facturaMan==='USD').reduce((s,o)=>s+(parseFloat(o.factura)||0),0);
-    const venCount = [...activas,...enMadrid].filter(o=>o.dest==='Venezuela').length;
-    const chiCount = [...activas,...enMadrid].filter(o=>o.dest==='Chile').length;
+    // Agrupar por destino y estado
+    const porDestino = (dest) => {
+      const ords = [...activas, ...enMadrid].filter(o => o.dest === dest || (dest === 'Madrid' && enMadrid.includes(o)));
+      const estados = ['Comprado','En tránsito','En aduana','En almacén Madrid','Entregado'];
+      return estados.map(est => {
+        const items = est === 'En almacén Madrid'
+          ? enMadrid.filter(o => o.dest !== 'Madrid' ? false : true).concat(enMadrid.filter(o => o.dest === dest))
+          : ords.filter(o => o.estado === est && !enMadrid.includes(o));
+        // Para Madrid mostrar todas las de almacén Madrid
+        const itemsFinal = est === 'En almacén Madrid'
+          ? enMadrid.filter(o => true)
+          : ords.filter(o => o.estado === est && !enMadrid.includes(o));
+        return { estado: est, items: dest === 'Madrid' ? (est==='En almacén Madrid'?enMadrid:[]) : ords.filter(o => o.estado === est && !enMadrid.includes(o)) };
+      }).filter(g => g.items.length > 0);
+    };
 
-    // Solicitudes pendientes
-    const solCotizadas = pipeline.filter(s=>s.estado==='Cotizada');
-    const solAprobadas = pipeline.filter(s=>s.estado==='Aprobado');
+    const ordenesVen = [...activas, ...enMadrid].filter(o => o.dest === 'Venezuela');
+    const ordenesChi = [...activas, ...enMadrid].filter(o => o.dest === 'Chile');
+    const ordenesMad = enMadrid;
 
-    const fmtMon = (n,mon) => (mon==='USD'?'$':'€')+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const totalDestino = (ords, mon) => ords.filter(o=>o.facturaMan===mon).reduce((s,o)=>s+(parseFloat(o.factura)||0),0);
 
-    const tablaGrupo = (items) => {
-      if (!items.length) return '<p style="padding:12px 16px;font-size:13px;color:#aaa;margin:0">Sin órdenes en este estado</p>';
-      return '<table width="100%" cellpadding="0" cellspacing="0"><tr style="background:#f9f9f9">' +
-        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Ref.</th>' +
-        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Proveedor</th>' +
-        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Mercancía</th>' +
-        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Destino</th>' +
-        '<th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Factura</th>' +
-        '<th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">ETA</th>' +
-        '</tr>' +
+    const estadoColor = { 'Comprado':'#6fb3f5','En tránsito':'#F5C800','En aduana':'#e67e22','En almacén Madrid':'#2ecc71','Entregado':'#2ecc71' };
+    const estadoBg = { 'Comprado':'rgba(111,179,245,0.1)','En tránsito':'rgba(245,200,0,0.1)','En aduana':'rgba(230,126,34,0.1)','En almacén Madrid':'rgba(46,204,113,0.1)','Entregado':'rgba(46,204,113,0.1)' };
+
+    const tablaOrdenes = (items) => {
+      if (!items.length) return '';
+      return `<table width="100%" cellpadding="0" cellspacing="0">
+        <tr style="background:#f9f9f9">
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Ref.</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Proveedor</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Mercancía</th>
+          <th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Monto</th>
+          <th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">ETA</th>
+        </tr>` +
         items.map((o,i) => `<tr style="background:${i%2===0?'#fff':'#fafafa'}">
           <td style="padding:9px 12px;font-size:12px;font-weight:600;color:#1a1a1a;border-top:1px solid #f0f0f0">${o.ref||'—'}</td>
           <td style="padding:9px 12px;font-size:12px;color:#333;border-top:1px solid #f0f0f0">${o.prov||'—'}</td>
-          <td style="padding:9px 12px;font-size:11px;color:#666;border-top:1px solid #f0f0f0;max-width:160px">${o.merc||'—'}</td>
-          <td style="padding:9px 12px;border-top:1px solid #f0f0f0"><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500;background:${o.dest==='Venezuela'?'rgba(245,200,0,0.15)':'rgba(180,120,240,0.15)'};color:${o.dest==='Venezuela'?'#8B6F00':'#9b59b6'}">${o.dest||'—'}</span></td>
+          <td style="padding:9px 12px;font-size:11px;color:#666;border-top:1px solid #f0f0f0;max-width:180px">${o.merc||'—'}</td>
           <td style="padding:9px 12px;font-size:12px;font-weight:500;color:#1a1a1a;text-align:right;border-top:1px solid #f0f0f0">${o.factura?fmtMon(o.factura,o.facturaMan):'—'}</td>
-          <td style="padding:9px 12px;font-size:11px;color:#888;text-align:right;border-top:1px solid #f0f0f0">${o.eta||'—'}</td>
-        </tr>`).join('') + '</table>';
+          <td style="padding:9px 12px;font-size:11px;color:#888;text-align:right;border-top:1px solid #f0f0f0;white-space:nowrap">${o.eta||'—'}</td>
+        </tr>`).join('') +
+        `<tr style="background:#f9f9f9">
+          <td colspan="3" style="padding:8px 12px;font-size:11px;font-weight:600;color:#555;border-top:2px solid #eee">Subtotal ${items.length} orden(es)</td>
+          <td colspan="2" style="padding:8px 12px;font-size:11px;font-weight:600;color:#1a1a1a;text-align:right;border-top:2px solid #eee">
+            ${totalDestino(items,'EUR')>0?'€'+totalDestino(items,'EUR').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):''}
+            ${totalDestino(items,'USD')>0?' $'+totalDestino(items,'USD').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):''}
+          </td>
+        </tr>
+      </table>`;
     };
 
-    const tablaSolicitudes = (items, tipo) => {
+    const seccionEstados = (ords) => {
+      const grupos = ['Comprado','En tránsito','En aduana'].map(est => ({
+        estado: est,
+        items: ords.filter(o => o.estado === est && !enMadrid.includes(o))
+      })).filter(g => g.items.length > 0);
+
+      const madridItems = ords.filter(o => enMadrid.includes(o));
+      if (madridItems.length) grupos.push({ estado: 'En almacén Madrid', items: madridItems });
+
+      return grupos.map(g => `
+        <div style="margin-bottom:16px;border:1px solid #f0f0f0;border-radius:8px;overflow:hidden">
+          <div style="padding:10px 14px;display:flex;align-items:center;gap:8px;background:${estadoBg[g.estado]||'#f9f9f9'}">
+            <div style="width:8px;height:8px;border-radius:50%;background:${estadoColor[g.estado]||'#888'}"></div>
+            <span style="font-size:12px;font-weight:700;color:#1a1a1a">${g.estado}</span>
+            <span style="margin-left:auto;font-size:10px;color:#888;background:#f0f0f0;padding:2px 8px;border-radius:10px">${g.items.length}</span>
+          </div>
+          ${tablaOrdenes(g.items)}
+        </div>`).join('');
+    };
+
+    const tablaSolicitudes = (items) => {
       if (!items.length) return '<p style="padding:12px 16px;font-size:13px;color:#aaa;margin:0">Sin solicitudes</p>';
-      const colorTipo = tipo==='Aprobado' ? '#2ecc71' : '#F5C800';
-      return '<table width="100%" cellpadding="0" cellspacing="0"><tr style="background:#f9f9f9">' +
-        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Proveedor</th>' +
-        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Producto</th>' +
-        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Destino</th>' +
-        '<th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Presupuesto</th>' +
-        '<th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Estado</th>' +
-        '</tr>' +
+      return `<table width="100%" cellpadding="0" cellspacing="0">
+        <tr style="background:#f9f9f9">
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Proveedor</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Producto</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Destino</th>
+          <th style="padding:8px 12px;text-align:right;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Presupuesto</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:#999;text-transform:uppercase;font-weight:500">Estado</th>
+        </tr>` +
         items.map((s,i) => `<tr style="background:${i%2===0?'#fff':'#fafafa'}">
           <td style="padding:9px 12px;font-size:12px;font-weight:600;color:#1a1a1a;border-top:1px solid #f0f0f0">${s.prov||'—'}</td>
           <td style="padding:9px 12px;font-size:11px;color:#555;border-top:1px solid #f0f0f0;max-width:180px">${s.producto||'—'}</td>
           <td style="padding:9px 12px;border-top:1px solid #f0f0f0"><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500;background:${s.dest==='Venezuela'?'rgba(245,200,0,0.15)':'rgba(180,120,240,0.15)'};color:${s.dest==='Venezuela'?'#8B6F00':'#9b59b6'}">${s.dest||'—'}</span></td>
           <td style="padding:9px 12px;font-size:12px;font-weight:500;text-align:right;border-top:1px solid #f0f0f0">${s.presupuesto?fmtMon(s.presupuesto,s.presupuestoMon):'—'}</td>
-          <td style="padding:9px 12px;border-top:1px solid #f0f0f0"><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500;background:${colorTipo}22;color:${colorTipo}">${s.estado}</span></td>
+          <td style="padding:9px 12px;border-top:1px solid #f0f0f0"><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500;background:${s.estado==='Aprobado'?'rgba(46,204,113,0.15)':'rgba(245,200,0,0.15)'};color:${s.estado==='Aprobado'?'#2ecc71':'#8B6F00'}">${s.estado}</span></td>
         </tr>`).join('') + '</table>';
     };
 
@@ -3281,7 +3330,7 @@ async function generarReporte() {
 <html lang="es"><head><meta charset="UTF-8">
 <style>
   body{margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif}
-  .wrap{max-width:700px;margin:30px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+  .wrap{max-width:720px;margin:30px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
   .header{background:#1a1a1a;padding:32px 40px;text-align:center}
   .header img{width:70px;height:70px;margin-bottom:12px}
   .header h1{margin:0;color:#fff;font-size:22px;font-weight:700}
@@ -3289,23 +3338,23 @@ async function generarReporte() {
   .banner{background:#F5C800;padding:14px 40px;text-align:center}
   .banner p{margin:0;color:#0a0a0a;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
   .body{padding:32px 40px}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
   .kpi{background:#f9f9f9;border-radius:8px;padding:14px 12px;text-align:center;border:1px solid #eee}
   .kpi-val{font-size:24px;font-weight:700;color:#1a1a1a;margin-bottom:2px}
   .kpi-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px}
   .kpi-sub{font-size:11px;color:#bbb;margin-top:2px}
-  .seccion{margin-bottom:24px;border:1px solid #f0f0f0;border-radius:8px;overflow:hidden}
-  .seccion-header{padding:12px 16px;display:flex;align-items:center;gap:10px}
-  .seccion-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-  .seccion-titulo{font-size:13px;font-weight:700;color:#1a1a1a}
-  .seccion-count{margin-left:auto;font-size:11px;color:#888;background:#f0f0f0;padding:2px 8px;border-radius:10px}
   .totales{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
   .total-box{background:#fffbe6;border:1px solid #F5C800;border-radius:8px;padding:16px;text-align:center}
-  .total-val{font-size:20px;font-weight:700;color:#8B6F00}
-  .total-label{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+  .total-val{font-size:22px;font-weight:700;color:#8B6F00}
+  .total-label{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
+  .total-sub{font-size:10px;color:#bbb;margin-top:2px}
+  .pais-header{padding:14px 20px;margin-bottom:0;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px}
+  .pais-block{border:2px solid #f0f0f0;border-radius:8px;margin-bottom:28px;overflow:hidden}
   .footer{background:#1a1a1a;padding:20px 40px;text-align:center}
   .footer p{margin:0;color:#F5C800;font-size:13px;font-weight:700}
   .footer small{display:block;margin-top:4px;color:#444;font-size:10px}
+  .seccion-titulo{font-size:13px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px}
+  .divider{height:1px;background:#f0f0f0;margin:20px 0}
 </style>
 </head><body>
 <div class="wrap">
@@ -3324,79 +3373,119 @@ async function generarReporte() {
         <div class="kpi-label">Órdenes activas</div>
       </div>
       <div class="kpi">
-        <div class="kpi-val" style="color:#f09040">${venCount}</div>
+        <div class="kpi-val" style="color:#f09040">${ordenesVen.length}</div>
         <div class="kpi-label">Venezuela</div>
       </div>
       <div class="kpi">
-        <div class="kpi-val" style="color:#c990f0">${chiCount}</div>
+        <div class="kpi-val" style="color:#c990f0">${ordenesChi.length}</div>
         <div class="kpi-label">Chile</div>
       </div>
       <div class="kpi">
         <div class="kpi-val" style="color:#F5C800">${solAprobadas.length + solCotizadas.length}</div>
         <div class="kpi-label">Solicitudes</div>
-        <div class="kpi-sub">${solAprobadas.length} aprobadas</div>
+        <div class="kpi-sub">${solAprobadas.length} aprobadas · ${solCotizadas.length} cotizadas</div>
       </div>
     </div>
 
-    <!-- Totales financieros -->
+    <!-- Totales -->
     <div class="totales">
       <div class="total-box">
         <div class="total-val">€${totalEUR.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-        <div class="total-label">Total comprometido EUR</div>
+        <div class="total-label">Total en órdenes + aprobadas</div>
+        <div class="total-sub">EUR — activas y por ejecutar</div>
       </div>
       <div class="total-box">
         <div class="total-val">$${totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-        <div class="total-label">Total comprometido USD</div>
+        <div class="total-label">Total en órdenes + aprobadas</div>
+        <div class="total-sub">USD — activas y por ejecutar</div>
       </div>
     </div>
 
     <!-- Solicitudes aprobadas -->
     ${solAprobadas.length ? `
-    <div class="seccion">
-      <div class="seccion-header" style="background:rgba(46,204,113,0.08)">
-        <div class="seccion-dot" style="background:#2ecc71"></div>
-        <span class="seccion-titulo">Solicitudes Aprobadas — Pendientes de Ejecutar</span>
-        <span class="seccion-count">${solAprobadas.length}</span>
+    <div class="pais-block">
+      <div class="pais-header" style="background:rgba(46,204,113,0.08);border-bottom:2px solid rgba(46,204,113,0.2)">
+        <span style="font-size:16px">✅</span>
+        <span class="seccion-titulo" style="color:#27ae60">Solicitudes Aprobadas — Pendientes de Ejecutar</span>
+        <span style="margin-left:auto;font-size:11px;background:rgba(46,204,113,0.15);color:#27ae60;padding:3px 10px;border-radius:10px;font-weight:600">${solAprobadas.length}</span>
       </div>
-      ${tablaSolicitudes(solAprobadas,'Aprobado')}
+      <div style="padding:16px 20px">
+        ${tablaSolicitudes(solAprobadas)}
+      </div>
     </div>` : ''}
 
     <!-- Solicitudes cotizadas -->
     ${solCotizadas.length ? `
-    <div class="seccion">
-      <div class="seccion-header" style="background:rgba(245,200,0,0.08)">
-        <div class="seccion-dot" style="background:#F5C800"></div>
-        <span class="seccion-titulo">Solicitudes Cotizadas — Pendientes de Aprobación</span>
-        <span class="seccion-count">${solCotizadas.length}</span>
+    <div class="pais-block">
+      <div class="pais-header" style="background:rgba(245,200,0,0.08);border-bottom:2px solid rgba(245,200,0,0.2)">
+        <span style="font-size:16px">🕐</span>
+        <span class="seccion-titulo" style="color:#8B6F00">Solicitudes Cotizadas — Pendientes de Aprobación</span>
+        <span style="margin-left:auto;font-size:11px;background:rgba(245,200,0,0.15);color:#8B6F00;padding:3px 10px;border-radius:10px;font-weight:600">${solCotizadas.length}</span>
       </div>
-      ${tablaSolicitudes(solCotizadas,'Cotizada')}
+      <div style="padding:16px 20px">
+        ${tablaSolicitudes(solCotizadas)}
+      </div>
     </div>` : ''}
 
-    <!-- Órdenes por estado -->
-    ${grupos.map(g => g.items.length ? `
-    <div class="seccion">
-      <div class="seccion-header" style="background:${g.bgColor}">
-        <div class="seccion-dot" style="background:${g.color}"></div>
-        <span class="seccion-titulo">${g.titulo}</span>
-        <span class="seccion-count">${g.items.length}</span>
+    <!-- VENEZUELA -->
+    ${ordenesVen.length ? `
+    <div class="pais-block" style="border-color:#f09040">
+      <div class="pais-header" style="background:rgba(240,144,64,0.08);border-bottom:2px solid rgba(240,144,64,0.2)">
+        <span style="font-size:20px">🇻🇪</span>
+        <div>
+          <div class="seccion-titulo" style="color:#c0622a">Venezuela</div>
+          <div style="font-size:10px;color:#aaa;margin-top:2px">${ordenesVen.length} órdenes · ${totalDestino(ordenesVen,'EUR')>0?'€'+totalDestino(ordenesVen,'EUR').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' ':''} ${totalDestino(ordenesVen,'USD')>0?'$'+totalDestino(ordenesVen,'USD').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):''}</div>
+        </div>
       </div>
-      ${tablaGrupo(g.items)}
-    </div>` : '').join('')}
+      <div style="padding:16px 20px">
+        ${seccionEstados(ordenesVen)}
+      </div>
+    </div>` : ''}
+
+    <!-- CHILE -->
+    ${ordenesChi.length ? `
+    <div class="pais-block" style="border-color:#c990f0">
+      <div class="pais-header" style="background:rgba(180,120,240,0.08);border-bottom:2px solid rgba(180,120,240,0.2)">
+        <span style="font-size:20px">🇨🇱</span>
+        <div>
+          <div class="seccion-titulo" style="color:#9b59b6">Chile</div>
+          <div style="font-size:10px;color:#aaa;margin-top:2px">${ordenesChi.length} órdenes · ${totalDestino(ordenesChi,'EUR')>0?'€'+totalDestino(ordenesChi,'EUR').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' ':''} ${totalDestino(ordenesChi,'USD')>0?'$'+totalDestino(ordenesChi,'USD').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):''}</div>
+        </div>
+      </div>
+      <div style="padding:16px 20px">
+        ${seccionEstados(ordenesChi)}
+      </div>
+    </div>` : ''}
+
+    <!-- MADRID -->
+    ${ordenesMad.filter(o=>o.dest==='Madrid').length ? `
+    <div class="pais-block" style="border-color:#2ecc71">
+      <div class="pais-header" style="background:rgba(46,204,113,0.08);border-bottom:2px solid rgba(46,204,113,0.2)">
+        <span style="font-size:20px">🏭</span>
+        <div>
+          <div class="seccion-titulo" style="color:#27ae60">En Almacén Madrid</div>
+          <div style="font-size:10px;color:#aaa;margin-top:2px">Esperando despacho al destino final</div>
+        </div>
+      </div>
+      <div style="padding:16px 20px">
+        ${tablaOrdenes(ordenesMad.filter(o=>o.dest==='Madrid'))}
+      </div>
+    </div>` : ''}
 
   </div>
   <div class="footer">
     <p>365 IMPORTS</p>
-    <small>Reporte generado automáticamente · Gestor Logístico · ${new Date().toLocaleString('es-VE')}</small>
+    <small>Reporte generado el ${new Date().toLocaleString('es-VE')} · Gestor Logístico</small>
   </div>
 </div>
 </body></html>`;
 
-    // Abrir reporte en nueva ventana
+    // Abrir en nueva ventana
     const ventana = window.open('', '_blank');
     ventana.document.write(html);
     ventana.document.close();
 
-    // Mandar por correo
+    // Enviar por correo
     setStatus('loading', 'Enviando reporte por correo...');
     await postAGAS({
       action: 'enviar_reporte_ejecutivo',
