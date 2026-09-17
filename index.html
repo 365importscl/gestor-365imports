@@ -2926,6 +2926,15 @@ function despacharDesdeMadrid(idOrigen) {
 
     // Guardar referencia al origen para vincular al guardar
     window._madridOrigenId = idOrigen;
+
+    // Marcar la orden de Madrid como Entregado para que salga del almacén
+    const origenActual = ordenes.find(o => o.id === idOrigen);
+    if (origenActual) {
+      origenActual.estado = 'Entregado';
+      origenActual.recibidoPor = usuarioActual || 'Sistema';
+      guardarEnSheets([], []);
+      renderTodo();
+    }
   }, 150);
 }
 
