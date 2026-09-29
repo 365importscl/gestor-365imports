@@ -1940,9 +1940,13 @@ function pedirDel(id){
 }
 function cerrarConfirm(){document.getElementById('confirm-modal').style.display='none';delId=null;}
 async function confirmarDel(){
-  ordenes=ordenes.filter(x=>x.id!==delId);cerrarConfirm();renderTodo();
+  if(autoSyncInterval){clearInterval(autoSyncInterval);autoSyncInterval=null;}
+  ordenes=ordenes.filter(x=>x.id!==delId);
+  maxOrdenesConocidas=ordenes.length;
+  cerrarConfirm();renderTodo();
   setStatus('loading','Guardando en Google Sheets...');
   await guardarEnSheets([]);
+  iniciarAutoSync();
 }
 
 function abrirConfig(){renderListaProveedores();renderListaCorreos();renderListaDeptos();document.getElementById('config-modal').style.display='flex';}
@@ -2878,63 +2882,18 @@ function despacharDesdeMadrid(idOrigen) {
   // Abrir formulario de nueva orden pre-llenado
   abrirForm(null);
   setTimeout(() => {
-    const set = (id, val) => { const el = document.getElementById(id); if(el && val !== undefined && val !== null) el.value = val; };
-
-    // Datos del proveedor y mercancía
-    set('i-prov',    origen.prov || '');
-    set('i-tipo',    origen.tipo || 'Aérea');
-    set('i-merc',    origen.merc || '');
-    set('i-estado',  'En tránsito');
-    set('i-carrier', origen.carrier || '');
-
-    // Destino — usar el destino original si no es Madrid, sino Venezuela por defecto
-    const destFinal = (origen.dest && origen.dest !== 'Madrid') ? origen.dest : 'Venezuela';
-    set('i-dest', destFinal);
-
-    // Referencia — agregar sufijo para diferenciarla
-    set('i-ref', origen.ref ? origen.ref + '-D' : '');
-
-    // Costos
-    set('i-factura',     origen.factura || 0);
-    set('i-factura-mon', origen.facturaMan || 'USD');
-    set('i-flete',       origen.flete || 0);
-    set('i-flete-mon',   origen.fleteMan || 'USD');
-    set('i-aduana',      origen.aduana || 0);
-    set('i-aduana-mon',  origen.aduanaMan || 'USD');
-    set('i-otros',       origen.otros || 0);
-    set('i-otros-mon',   origen.otrosMan || 'USD');
-
-    // Fechas
-    set('i-etd', origen.eta || '');  // ETA de Madrid se convierte en ETD de salida
-    set('i-eta', '');
-
-    // Notas
-    set('i-notas', origen.notas ? 'Despacho desde Madrid. ' + origen.notas : 'Despacho desde Madrid.');
-
-    // Correos
-    ordenCorreosTemp = [...(origen.correos || [])];
-
-    // Links de factura y comprobante
+    if(document.getElementById('i-prov')) document.getElementById('i-prov').value = origen.prov || '';
+    if(document.getElementById('i-dest')) document.getElementById('i-dest').value = 'Venezuela';
+    if(document.getElementById('i-tipo')) document.getElementById('i-tipo').value = origen.tipo || 'Aérea';
+    if(document.getElementById('i-merc')) document.getElementById('i-merc').value = origen.merc || '';
+    if(document.getElementById('i-estado')) document.getElementById('i-estado').value = 'En tránsito';
+    // Copiar links de factura
     if(origen.linksFactura && origen.linksFactura.length) {
       linksFacturaTemp = [...origen.linksFactura];
       renderLinksFacturaTags();
     }
-    if(origen.linksComprobante && origen.linksComprobante.length) {
-      linksComprobanteTemp = [...origen.linksComprobante];
-      renderLinksComprobanteTags();
-    }
-
     // Guardar referencia al origen para vincular al guardar
     window._madridOrigenId = idOrigen;
-
-    // Marcar la orden de Madrid como Entregado para que salga del almacén
-    const origenActual = ordenes.find(o => o.id === idOrigen);
-    if (origenActual) {
-      origenActual.estado = 'Entregado';
-      origenActual.recibidoPor = usuarioActual || 'Sistema';
-      guardarEnSheets([], []);
-      renderTodo();
-    }
   }, 150);
 }
 
