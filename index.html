@@ -1915,11 +1915,13 @@ async function guardar(){
     window._pipSolicitudId=null;
     await guardarPipelineEnSheets();
   }
-  // Si viene de despacho desde Madrid, vincular con la orden origen
+  // Si viene de despacho desde Madrid — eliminar la orden de Madrid y vincular
   if(window._madridOrigenId){
-    const origen = ordenes.find(o=>o.id===window._madridOrigenId);
-    if(origen) origen.ordenMadridId = String(nid-1);
+    const origenId = window._madridOrigenId;
     window._madridOrigenId = null;
+    // Eliminar la orden de Madrid de la lista activa
+    ordenes = ordenes.filter(o => o.id !== origenId);
+    maxOrdenesConocidas = ordenes.length;
   }
   cerrarForm();renderTodo();
   setStatus('loading','Guardando en Google Sheets...');
@@ -1940,13 +1942,9 @@ function pedirDel(id){
 }
 function cerrarConfirm(){document.getElementById('confirm-modal').style.display='none';delId=null;}
 async function confirmarDel(){
-  if(autoSyncInterval){clearInterval(autoSyncInterval);autoSyncInterval=null;}
-  ordenes=ordenes.filter(x=>x.id!==delId);
-  maxOrdenesConocidas=ordenes.length;
-  cerrarConfirm();renderTodo();
+  ordenes=ordenes.filter(x=>x.id!==delId);cerrarConfirm();renderTodo();
   setStatus('loading','Guardando en Google Sheets...');
   await guardarEnSheets([]);
-  iniciarAutoSync();
 }
 
 function abrirConfig(){renderListaProveedores();renderListaCorreos();renderListaDeptos();document.getElementById('config-modal').style.display='flex';}
