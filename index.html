@@ -2050,9 +2050,13 @@ function pedirDel(id){
 }
 function cerrarConfirm(){document.getElementById('confirm-modal').style.display='none';delId=null;}
 async function confirmarDel(){
-  ordenes=ordenes.filter(x=>x.id!==delId);cerrarConfirm();renderTodo();
+  if(autoSyncInterval){clearInterval(autoSyncInterval);autoSyncInterval=null;}
+  ordenes=ordenes.filter(x=>x.id!==delId);
+  maxOrdenesConocidas=ordenes.length;
+  cerrarConfirm();renderTodo();
   setStatus('loading','Guardando en Google Sheets...');
   await guardarEnSheets([]);
+  iniciarAutoSync();
 }
 
 function abrirConfig(){renderListaProveedores();renderListaCorreos();renderListaDeptos();document.getElementById('config-modal').style.display='flex';}
