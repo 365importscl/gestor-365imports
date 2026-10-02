@@ -1614,8 +1614,15 @@ function chipDias(eta){
 }
 function barraEstado(estado){
   const pasos=['Comprado','En tránsito','En aduana','Entregado'];
-  const idx=pasos.indexOf(estado);
-  return`<div class="estado-progress">${pasos.map((_,i)=>`<div class="estado-step${i<idx?'done':i===idx?' active':''}"></div>`).join('')}</div>`;
+  const colores=['#3b82f6','#F5C800','#f97316','#22c55e'];
+  let idx = pasos.indexOf(estado);
+  if(estado==='En Madrid') idx=3; // Madrid = último paso
+  const col = colores[idx] || '#F5C800';
+  return`<div class="estado-progress" title="${estado}">${pasos.map((_,i)=>{
+    if(i<idx) return`<div class="estado-step" style="background:#F5C800;opacity:.5"></div>`;
+    if(i===idx) return`<div class="estado-step" style="background:${col};box-shadow:0 0 5px ${col}88"></div>`;
+    return`<div class="estado-step"></div>`;
+  }).join('')}</div>`;
 }
 function colorEstado(e){
   if(e==='Comprado')return'rgba(59,130,246,.15);color:#3b82f6';
